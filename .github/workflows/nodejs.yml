@@ -1,0 +1,30 @@
+on: [push, pull_request]
+
+name: CI
+
+jobs:
+  test:
+    name: Test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [14.x, 16.x]
+        mongodb-version: ['4.4', '5.0']
+    runs-on: ${{matrix.os}}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Start MongoDB ${{ matrix.mongodb-version }}
+        uses: supercharge/mongodb-github-action@1.7.0
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
+      - name: Install Dependencies
+        run: npm install
+      - name: Test
+        run: npm test
+        env:
+          MONGODB_URI: mongodb://localhost/
