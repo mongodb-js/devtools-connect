@@ -62,10 +62,6 @@ export function hookLogger(
     });
   });
 
-  emitter.on('devtools-connect:reset-connection-options', function() {
-    log.info('DEVTOOLS-CONNECT', mongoLogId(1_000_000_040), `${contextPrefix}-connect`, 'Reconnect because of changed connection options');
-  });
-
   emitter.on('devtools-connect:missing-optional-dependency', function(ev: ConnectMissingOptionalDependencyEvent) {
     log.error('DEVTOOLS-CONNECT', mongoLogId(1_000_000_041), `${contextPrefix}-deps`, 'Missing optional dependency', {
       name: ev.name,

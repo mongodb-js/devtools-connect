@@ -26,7 +26,6 @@ describe('Logging setup', () => {
     emitter.emit('devtools-connect:connect-attempt-finished');
     emitter.emit('devtools-connect:resolve-srv-error', { from: 'mongodb+srv://foo:bar@hello.world/', error: new Error('failed'), duringLoad: false });
     emitter.emit('devtools-connect:resolve-srv-succeeded', { from: 'mongodb+srv://foo:bar@hello.world/', to: 'mongodb://foo:bar@db.hello.world/' });
-    emitter.emit('devtools-connect:reset-connection-options');
     emitter.emit('devtools-connect:missing-optional-dependency', { name: 'kerberos', error: new Error('no kerberos') });
 
     await log.flush();
@@ -111,14 +110,6 @@ describe('Logging setup', () => {
           from: 'mongodb+srv://<credentials>@hello.world/',
           to: 'mongodb://<credentials>@db.hello.world/'
         }
-      },
-      {
-        t: { $date: '2021-12-16T14:35:08.763Z' },
-        s: 'I',
-        c: 'DEVTOOLS-CONNECT',
-        id: 1000000040,
-        ctx: 'prefix-connect',
-        msg: 'Reconnect because of changed connection options'
       },
       {
         t: { $date: '2021-12-16T14:35:08.763Z' },

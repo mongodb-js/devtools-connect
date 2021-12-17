@@ -47,8 +47,6 @@ export interface ConnectEventMap {
   'devtools-connect:resolve-srv-error': (ev: ConnectResolveSrvErrorEvent) => void;
   /** Signals that resolving an mongodb+srv:// URL succeeded. */
   'devtools-connect:resolve-srv-succeeded': (ev: ConnectResolveSrvSucceededEvent) => void;
-  /** Signals that the service provider is opening a new connection because options have changed. */
-  'devtools-connect:reset-connection-options': () => void;
   /** Signals that an optional dependency of the mongodb package is missing. */
   'devtools-connect:missing-optional-dependency': (ev: ConnectMissingOptionalDependencyEvent) => void;
 }
