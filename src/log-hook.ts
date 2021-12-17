@@ -7,13 +7,20 @@ import type {
   ConnectMissingOptionalDependencyEvent,
   ConnectLogEmitter
 } from './types';
-import { MongoLogWriter, mongoLogId } from 'mongodb-log-writer';
+
+interface MongoLogWriter {
+  info(c: string, id: unknown, ctx: string, msg: string, attr?: any): void;
+  warn(c: string, id: unknown, ctx: string, msg: string, attr?: any): void;
+  error(c: string, id: unknown, ctx: string, msg: string, attr?: any): void;
+  mongoLogId(id: number): unknown;
+}
 
 export function hookLogger(
   emitter: ConnectLogEmitter,
   log: MongoLogWriter,
   contextPrefix: string,
   redactURICredentials: (uri: string) => string): void {
+  const { mongoLogId } = log;
   emitter.on('devtools-connect:connect-attempt-initialized', function(ev: ConnectAttemptInitializedEvent) {
     log.info('DEVTOOLS-CONNECT', mongoLogId(1_000_000_042), `${contextPrefix}-connect`, 'Initiating connection attempt', {
       ...ev,
