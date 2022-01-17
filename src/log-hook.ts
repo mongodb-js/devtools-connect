@@ -51,14 +51,16 @@ export function hookLogger(
     log.error('DEVTOOLS-CONNECT', mongoLogId(1_000_000_038), `${contextPrefix}-connect`, 'Resolving SRV record failed', {
       from: redactURICredentials(ev.from),
       error: ev.error?.message,
-      duringLoad: ev.duringLoad
+      duringLoad: ev.duringLoad,
+      resolutionDetails: ev.resolutionDetails
     });
   });
 
   emitter.on('devtools-connect:resolve-srv-succeeded', function(ev: ConnectResolveSrvSucceededEvent) {
     log.info('DEVTOOLS-CONNECT', mongoLogId(1_000_000_039), `${contextPrefix}-connect`, 'Resolving SRV record succeeded', {
       from: redactURICredentials(ev.from),
-      to: redactURICredentials(ev.to)
+      to: redactURICredentials(ev.to),
+      resolutionDetails: ev.resolutionDetails
     });
   });
 

@@ -7,6 +7,7 @@ import type {
   ServerHeartbeatSucceededEvent,
   TopologyDescription
 } from 'mongodb';
+import type { ConnectDnsResolutionDetail } from './types';
 
 export class MongoAutoencryptionUnavailable extends Error {
   constructor() {
@@ -82,6 +83,7 @@ let resolveDnsHelpers: {
 } | undefined;
 
 async function resolveMongodbSrv(uri: string, logger: ConnectLogEmitter): Promise<string> {
+  const resolutionDetails: ConnectDnsResolutionDetail[] = [];
   if (uri.startsWith('mongodb+srv://')) {
     try {
       resolveDnsHelpers ??= {
@@ -89,17 +91,42 @@ async function resolveMongodbSrv(uri: string, logger: ConnectLogEmitter): Promis
         osDns: require('os-dns-native')
       };
     } catch (error: any) {
-      logger.emit('devtools-connect:resolve-srv-error', { from: '', error, duringLoad: true });
+      logger.emit('devtools-connect:resolve-srv-error', {
+        from: '', error, duringLoad: true, resolutionDetails
+      });
     }
     if (resolveDnsHelpers !== undefined) {
       try {
+        const {
+          wasNativelyLookedUp,
+          withNodeFallback: { resolveSrv, resolveTxt }
+        } = resolveDnsHelpers.osDns;
         const resolved = await resolveDnsHelpers.resolve(uri, {
-          dns: resolveDnsHelpers.osDns.withNodeFallback
+          dns: {
+            resolveSrv(hostname: string, cb: Parameters<typeof resolveSrv>[1]) {
+              resolveSrv(hostname, (...args: Parameters<Parameters<typeof resolveSrv>[1]>) => {
+                resolutionDetails.push({
+                  hostname, error: args[0]?.message, wasNativelyLookedUp: wasNativelyLookedUp(args[1])
+                });
+                // eslint-disable-next-line node/no-callback-literal
+                cb(...args);
+              });
+            },
+            resolveTxt(hostname: string, cb: Parameters<typeof resolveTxt>[1]) {
+              resolveTxt(hostname, (...args: Parameters<Parameters<typeof resolveTxt>[1]>) => {
+                resolutionDetails.push({
+                  hostname, error: args[0]?.message, wasNativelyLookedUp: wasNativelyLookedUp(args[1])
+                });
+                // eslint-disable-next-line node/no-callback-literal
+                cb(...args);
+              });
+            }
+          }
         });
-        logger.emit('devtools-connect:resolve-srv-succeeded', { from: uri, to: resolved });
+        logger.emit('devtools-connect:resolve-srv-succeeded', { from: uri, to: resolved, resolutionDetails });
         return resolved;
       } catch (error: any) {
-        logger.emit('devtools-connect:resolve-srv-error', { from: uri, error, duringLoad: false });
+        logger.emit('devtools-connect:resolve-srv-error', { from: uri, error, duringLoad: false, resolutionDetails });
         throw error;
       }
     }

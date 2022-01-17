@@ -1,4 +1,4 @@
-import { hookLogger } from '../';
+import { hookLogger, ConnectLogEmitter } from '../';
 import { EventEmitter } from 'events';
 import { MongoLogWriter } from 'mongodb-log-writer';
 import { redactConnectionString } from 'mongodb-connection-string-url';
@@ -9,7 +9,7 @@ describe('Logging setup', () => {
   it('logs events', async() => {
     const pt = new PassThrough();
     const log = new MongoLogWriter('logid', null, pt, () => new Date('2021-12-16T14:35:08.763Z'));
-    const emitter = new EventEmitter();
+    const emitter: ConnectLogEmitter = new EventEmitter();
 
     hookLogger(emitter, log, 'prefix', redactConnectionString);
 
@@ -24,8 +24,17 @@ describe('Logging setup', () => {
     emitter.emit('devtools-connect:connect-heartbeat-succeeded', { connectionId: 'localhost' });
     emitter.emit('devtools-connect:connect-fail-early');
     emitter.emit('devtools-connect:connect-attempt-finished');
-    emitter.emit('devtools-connect:resolve-srv-error', { from: 'mongodb+srv://foo:bar@hello.world/', error: new Error('failed'), duringLoad: false });
-    emitter.emit('devtools-connect:resolve-srv-succeeded', { from: 'mongodb+srv://foo:bar@hello.world/', to: 'mongodb://foo:bar@db.hello.world/' });
+    emitter.emit('devtools-connect:resolve-srv-error', {
+      from: 'mongodb+srv://foo:bar@hello.world/',
+      error: new Error('failed'),
+      duringLoad: false,
+      resolutionDetails: [{ hostname: 'hello.world', error: 'failed', wasNativelyLookedUp: false }]
+    });
+    emitter.emit('devtools-connect:resolve-srv-succeeded', {
+      from: 'mongodb+srv://foo:bar@hello.world/',
+      to: 'mongodb://foo:bar@db.hello.world/',
+      resolutionDetails: [{ hostname: 'hello.world', error: undefined, wasNativelyLookedUp: true }]
+    });
     emitter.emit('devtools-connect:missing-optional-dependency', { name: 'kerberos', error: new Error('no kerberos') });
 
     await log.flush();
@@ -96,7 +105,10 @@ describe('Logging setup', () => {
         attr: {
           from: 'mongodb+srv://<credentials>@hello.world/',
           error: 'failed',
-          duringLoad: false
+          duringLoad: false,
+          resolutionDetails: [
+            { error: 'failed', hostname: 'hello.world', wasNativelyLookedUp: false }
+          ]
         }
       },
       {
@@ -108,7 +120,10 @@ describe('Logging setup', () => {
         msg: 'Resolving SRV record succeeded',
         attr: {
           from: 'mongodb+srv://<credentials>@hello.world/',
-          to: 'mongodb://<credentials>@db.hello.world/'
+          to: 'mongodb://<credentials>@db.hello.world/',
+          resolutionDetails: [
+            { error: null, hostname: 'hello.world', wasNativelyLookedUp: true }
+          ]
         }
       },
       {
