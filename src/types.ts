@@ -16,15 +16,23 @@ export interface ConnectHeartbeatSucceededEvent {
   connectionId: string;
 }
 
+export interface ConnectDnsResolutionDetail {
+  hostname: string;
+  error?: string;
+  wasNativelyLookedUp?: boolean;
+}
+
 export interface ConnectResolveSrvErrorEvent {
   from: string;
   error: Error;
   duringLoad: boolean;
+  resolutionDetails: ConnectDnsResolutionDetail[];
 }
 
 export interface ConnectResolveSrvSucceededEvent {
   from: string;
   to: string;
+  resolutionDetails: ConnectDnsResolutionDetail[];
 }
 
 export interface ConnectMissingOptionalDependencyEvent {
