@@ -28,12 +28,12 @@ describe('Logging setup', () => {
       from: 'mongodb+srv://foo:bar@hello.world/',
       error: new Error('failed'),
       duringLoad: false,
-      resolutionDetails: [{ hostname: 'hello.world', error: 'failed', wasNativelyLookedUp: false }]
+      resolutionDetails: [{ query: 'SRV', hostname: 'hello.world', error: 'failed', wasNativelyLookedUp: false }]
     });
     emitter.emit('devtools-connect:resolve-srv-succeeded', {
       from: 'mongodb+srv://foo:bar@hello.world/',
       to: 'mongodb://foo:bar@db.hello.world/',
-      resolutionDetails: [{ hostname: 'hello.world', error: undefined, wasNativelyLookedUp: true }]
+      resolutionDetails: [{ query: 'SRV', hostname: 'hello.world', error: undefined, wasNativelyLookedUp: true }]
     });
     emitter.emit('devtools-connect:missing-optional-dependency', { name: 'kerberos', error: new Error('no kerberos') });
 
@@ -107,7 +107,7 @@ describe('Logging setup', () => {
           error: 'failed',
           duringLoad: false,
           resolutionDetails: [
-            { error: 'failed', hostname: 'hello.world', wasNativelyLookedUp: false }
+            { query: 'SRV', error: 'failed', hostname: 'hello.world', wasNativelyLookedUp: false }
           ]
         }
       },
@@ -122,7 +122,7 @@ describe('Logging setup', () => {
           from: 'mongodb+srv://<credentials>@hello.world/',
           to: 'mongodb://<credentials>@db.hello.world/',
           resolutionDetails: [
-            { error: null, hostname: 'hello.world', wasNativelyLookedUp: true }
+            { query: 'SRV', error: null, hostname: 'hello.world', wasNativelyLookedUp: true }
           ]
         }
       },
