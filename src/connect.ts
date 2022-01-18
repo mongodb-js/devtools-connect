@@ -106,7 +106,7 @@ async function resolveMongodbSrv(uri: string, logger: ConnectLogEmitter): Promis
             resolveSrv(hostname: string, cb: Parameters<typeof resolveSrv>[1]) {
               resolveSrv(hostname, (...args: Parameters<Parameters<typeof resolveSrv>[1]>) => {
                 resolutionDetails.push({
-                  hostname, error: args[0]?.message, wasNativelyLookedUp: wasNativelyLookedUp(args[1])
+                  query: 'SRV', hostname, error: args[0]?.message, wasNativelyLookedUp: wasNativelyLookedUp(args[1])
                 });
                 // eslint-disable-next-line node/no-callback-literal
                 cb(...args);
@@ -115,7 +115,7 @@ async function resolveMongodbSrv(uri: string, logger: ConnectLogEmitter): Promis
             resolveTxt(hostname: string, cb: Parameters<typeof resolveTxt>[1]) {
               resolveTxt(hostname, (...args: Parameters<Parameters<typeof resolveTxt>[1]>) => {
                 resolutionDetails.push({
-                  hostname, error: args[0]?.message, wasNativelyLookedUp: wasNativelyLookedUp(args[1])
+                  query: 'TXT', hostname, error: args[0]?.message, wasNativelyLookedUp: wasNativelyLookedUp(args[1])
                 });
                 // eslint-disable-next-line node/no-callback-literal
                 cb(...args);

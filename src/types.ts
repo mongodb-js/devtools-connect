@@ -17,6 +17,7 @@ export interface ConnectHeartbeatSucceededEvent {
 }
 
 export interface ConnectDnsResolutionDetail {
+  query: 'TXT' | 'SRV';
   hostname: string;
   error?: string;
   wasNativelyLookedUp?: boolean;
