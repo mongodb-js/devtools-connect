@@ -14,23 +14,14 @@
     "url": "https://github.com/mongodb-js/devtools-connect/issues"
   },
   "main": "lib/index.js",
-  "exports": {
-    "require": "./lib/index.js",
-    "import": "./.esm-wrapper.mjs"
-  },
-  "files": [
-    "LICENSE",
-    "lib",
-    "package.json",
-    "README.md",
-    ".esm-wrapper.mjs"
-  ],
   "scripts": {
     "lint": "eslint src/**/*.ts",
     "testonly": "nyc mocha --colors -r ts-node/register src/*.spec.ts",
     "test": "npm run lint && npm run build && npm run testonly",
-    "build": "npm run compile-ts && gen-esm-wrapper . ./.esm-wrapper.mjs",
+    "build": "npm run compile-ts",
     "prepack": "npm run build",
+    "prepare": "npm run build",
+    "install": "npm run build",
     "compile-ts": "tsc -p tsconfig.json"
   },
   "license": "Apache-2.0",
@@ -53,7 +44,6 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "5.1.x",
     "eslint-plugin-standard": "^5.0.0",
-    "gen-esm-wrapper": "^1.1.0",
     "mocha": "^9.1.1",
     "mongodb": "^4.2.2",
     "mongodb-connection-string-url": "^2.3.2",
@@ -65,7 +55,7 @@
     "typescript": "^4.5.4"
   },
   "optionalDependencies": {
-    "os-dns-native": "^1.1.1",
+    "os-dns-native": "mongodb-js/os-dns-native#debug-windows-e2e-compass",
     "resolve-mongodb-srv": "^1.1.1"
   }
 }
