@@ -73,7 +73,7 @@ export function hookLogger(
   });
 
   emitter.on('devtools-connect:used-system-ca', function(ev: ConnectUsedSystemCAEvent) {
-    log.error('DEVTOOLS-CONNECT', mongoLogId(1_000_000_049), `${contextPrefix}-connect`, 'Loaded system CA list', {
+    log.info('DEVTOOLS-CONNECT', mongoLogId(1_000_000_049), `${contextPrefix}-connect`, 'Loaded system CA list', {
       caCount: ev.caCount,
       asyncFallbackError: ev.asyncFallbackError?.message
     });

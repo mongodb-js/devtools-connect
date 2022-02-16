@@ -190,6 +190,7 @@ export async function connectMongoClient(
       ...clientOptions,
       ca
     };
+    delete clientOptions.useSystemCA;
   }
   if (clientOptions.autoEncryption !== undefined &&
     !clientOptions.autoEncryption.bypassAutoEncryption) {
