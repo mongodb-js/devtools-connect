@@ -8,6 +8,7 @@ import type {
   TopologyDescription
 } from 'mongodb';
 import type { ConnectDnsResolutionDetail } from './types';
+import { systemCertsAsync, Options as SystemCAOptions } from 'system-ca';
 
 export class MongoAutoencryptionUnavailable extends Error {
   constructor() {
@@ -163,6 +164,10 @@ function detectAndLogMissingOptionalDependencies(logger: ConnectLogEmitter) {
   }
 }
 
+export interface DevtoolsConnectOptions extends MongoClientOptions {
+  useSystemCA?: boolean;
+}
+
 /**
  * Connect a MongoClient. If AutoEncryption is requested, first connect without the encryption options and verify that
  * the connection is to an enterprise cluster. If not, then error, otherwise close the connection and reconnect with the
@@ -170,10 +175,22 @@ function detectAndLogMissingOptionalDependencies(logger: ConnectLogEmitter) {
  */
 export async function connectMongoClient(
   uri: string,
-  clientOptions: MongoClientOptions,
+  clientOptions: DevtoolsConnectOptions,
   logger: ConnectLogEmitter,
   MongoClientClass: typeof MongoClient): Promise<MongoClient> {
   detectAndLogMissingOptionalDependencies(logger);
+  if (clientOptions.useSystemCA) {
+    const systemCAOpts: SystemCAOptions = { includeNodeCertificates: true };
+    const ca = await systemCertsAsync(systemCAOpts);
+    logger.emit('devtools-connect:used-system-ca', {
+      caCount: ca.length,
+      asyncFallbackError: systemCAOpts.asyncFallbackError
+    });
+    clientOptions = {
+      ...clientOptions,
+      ca
+    };
+  }
   if (clientOptions.autoEncryption !== undefined &&
     !clientOptions.autoEncryption.bypassAutoEncryption) {
     // connect first without autoEncryption and serverApi options.

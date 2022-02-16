@@ -41,6 +41,11 @@ export interface ConnectMissingOptionalDependencyEvent {
   error: Error;
 }
 
+export interface ConnectUsedSystemCAEvent {
+  caCount: number;
+  asyncFallbackError: Error | undefined;
+}
+
 export interface ConnectEventMap {
   /** Signals that a connection attempt is about to be performed. */
   'devtools-connect:connect-attempt-initialized': (ev: ConnectAttemptInitializedEvent) => void;
@@ -58,6 +63,8 @@ export interface ConnectEventMap {
   'devtools-connect:resolve-srv-succeeded': (ev: ConnectResolveSrvSucceededEvent) => void;
   /** Signals that an optional dependency of the mongodb package is missing. */
   'devtools-connect:missing-optional-dependency': (ev: ConnectMissingOptionalDependencyEvent) => void;
+  /** Signals that the list of system certificates has been loaded and used for connecting. */
+  'devtools-connect:used-system-ca': (ev: ConnectUsedSystemCAEvent) => void;
 }
 
 export interface ConnectLogEmitter {
