@@ -36,6 +36,7 @@ describe('Logging setup', () => {
       resolutionDetails: [{ query: 'SRV', hostname: 'hello.world', error: undefined, wasNativelyLookedUp: true }]
     });
     emitter.emit('devtools-connect:missing-optional-dependency', { name: 'kerberos', error: new Error('no kerberos') });
+    emitter.emit('devtools-connect:used-system-ca', { caCount: 1234, asyncFallbackError: new Error('had to fallback to sync') });
 
     await log.flush();
     const logRawData: string = pt.setEncoding('utf8').read();
@@ -134,6 +135,15 @@ describe('Logging setup', () => {
         ctx: 'prefix-deps',
         msg: 'Missing optional dependency',
         attr: { name: 'kerberos', error: 'no kerberos' }
+      },
+      {
+        t: { $date: '2021-12-16T14:35:08.763Z' },
+        s: 'E',
+        c: 'DEVTOOLS-CONNECT',
+        id: 1000000049,
+        ctx: 'prefix-connect',
+        msg: 'Loaded system CA list',
+        attr: { caCount: 1234, asyncFallbackError: 'had to fallback to sync' }
       }
     ]);
   });

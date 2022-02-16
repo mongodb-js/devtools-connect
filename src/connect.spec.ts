@@ -38,6 +38,7 @@ describe('devtools connect', () => {
       expect(mClient.connect.getCalls()).to.have.lengthOf(1);
       expect(result).to.equal(mClient);
     });
+
     it('connects once when bypassAutoEncryption is true', async() => {
       const uri = 'localhost:27017';
       const opts = { autoEncryption: { bypassAutoEncryption: true } };
@@ -50,6 +51,7 @@ describe('devtools connect', () => {
       expect(mClient.connect.getCalls()).to.have.lengthOf(1);
       expect(result).to.equal(mClient);
     });
+
     it('connects twice when bypassAutoEncryption is false and enterprise via modules', async() => {
       const uri = 'localhost:27017';
       const opts = { autoEncryption: { bypassAutoEncryption: false } };
@@ -76,6 +78,7 @@ describe('devtools connect', () => {
       expect(commandSpy).to.have.been.calledOnceWithExactly({ buildInfo: 1 });
       expect(result).to.equal(mClientSecond);
     });
+
     it('errors when bypassAutoEncryption is falsy and not enterprise', async() => {
       const uri = 'localhost:27017';
       const opts = { autoEncryption: {} };
@@ -154,6 +157,19 @@ describe('devtools connect', () => {
         return expect(e).to.equal(err);
       }
       expect.fail('Failed to throw expected error');
+    });
+
+    it('connects once when using the system CA has been requested', async() => {
+      const uri = 'localhost:27017';
+      const mClient = stubConstructor(FakeMongoClient);
+      const mClientType = sinon.stub().returns(mClient);
+      mClient.connect.onFirstCall().resolves(mClient);
+      const result = await connectMongoClient(uri, { useSystemCA: true }, bus, mClientType as any);
+      expect(mClientType.getCalls()).to.have.lengthOf(1);
+      expect(mClientType.getCalls()[0].args[1].ca).to.be.an('array');
+      expect(mClientType.getCalls()[0].args[1].ca[0]).to.include('-----BEGIN CERTIFICATE-----');
+      expect(mClient.connect.getCalls()).to.have.lengthOf(1);
+      expect(result).to.equal(mClient);
     });
   });
 

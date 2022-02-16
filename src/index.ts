@@ -1,3 +1,3 @@
 export * from './types';
-export { connectMongoClient } from './connect';
+export { connectMongoClient, DevtoolsConnectOptions } from './connect';
 export { hookLogger } from './log-hook';

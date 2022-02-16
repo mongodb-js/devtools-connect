@@ -34,7 +34,9 @@
     "compile-ts": "tsc -p tsconfig.json"
   },
   "license": "Apache-2.0",
-  "dependencies": {},
+  "dependencies": {
+    "system-ca": "^1.0.0"
+  },
   "peerDependencies": {
     "mongodb": "^4.2.2",
     "mongodb-log-writer": "^1.1.3"

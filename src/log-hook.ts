@@ -5,6 +5,7 @@ import type {
   ConnectResolveSrvErrorEvent,
   ConnectResolveSrvSucceededEvent,
   ConnectMissingOptionalDependencyEvent,
+  ConnectUsedSystemCAEvent,
   ConnectLogEmitter
 } from './types';
 
@@ -67,7 +68,14 @@ export function hookLogger(
   emitter.on('devtools-connect:missing-optional-dependency', function(ev: ConnectMissingOptionalDependencyEvent) {
     log.error('DEVTOOLS-CONNECT', mongoLogId(1_000_000_041), `${contextPrefix}-deps`, 'Missing optional dependency', {
       name: ev.name,
-      error: ev?.error.message
+      error: ev.error.message
+    });
+  });
+
+  emitter.on('devtools-connect:used-system-ca', function(ev: ConnectUsedSystemCAEvent) {
+    log.error('DEVTOOLS-CONNECT', mongoLogId(1_000_000_049), `${contextPrefix}-connect`, 'Loaded system CA list', {
+      caCount: ev.caCount,
+      asyncFallbackError: ev.asyncFallbackError?.message
     });
   });
 }
