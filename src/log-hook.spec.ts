@@ -138,7 +138,7 @@ describe('Logging setup', () => {
       },
       {
         t: { $date: '2021-12-16T14:35:08.763Z' },
-        s: 'E',
+        s: 'I',
         c: 'DEVTOOLS-CONNECT',
         id: 1000000049,
         ctx: 'prefix-connect',
