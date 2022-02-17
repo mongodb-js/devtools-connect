@@ -35,7 +35,7 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "system-ca": "^1.0.0"
+    "system-ca": "^1.0.2"
   },
   "peerDependencies": {
     "mongodb": "^4.2.2",
