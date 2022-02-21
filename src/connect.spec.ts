@@ -166,8 +166,8 @@ describe('devtools connect', () => {
       mClient.connect.onFirstCall().resolves(mClient);
       const result = await connectMongoClient(uri, { useSystemCA: true }, bus, mClientType as any);
       expect(mClientType.getCalls()).to.have.lengthOf(1);
-      expect(mClientType.getCalls()[0].args[1].ca).to.be.an('array');
-      expect(mClientType.getCalls()[0].args[1].ca[0]).to.include('-----BEGIN CERTIFICATE-----');
+      expect(mClientType.getCalls()[0].args[1].ca).to.be.a('string');
+      expect(mClientType.getCalls()[0].args[1].ca).to.include('-----BEGIN CERTIFICATE-----');
       expect(mClient.connect.getCalls()).to.have.lengthOf(1);
       expect(result).to.equal(mClient);
     });

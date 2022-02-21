@@ -188,7 +188,7 @@ export async function connectMongoClient(
     });
     clientOptions = {
       ...clientOptions,
-      ca
+      ca: ca.join('\n')
     };
     delete clientOptions.useSystemCA;
   }
