@@ -46,7 +46,16 @@ export function hookLogger(
   });
 
   emitter.on('devtools-connect:connect-attempt-finished', function(ev: ConnectAttemptFinishedEvent) {
-    log.info('DEVTOOLS-CONNECT', mongoLogId(1_000_000_037), `${contextPrefix}-connect`, 'Connection attempt finished', ev);
+    let attr: any;
+    if (ev.csfleVersionInfo) {
+      attr = {
+        csfleVersionInfo: {
+          version: ev.csfleVersionInfo.version.toString(16),
+          versionStr: ev.csfleVersionInfo.versionStr
+        }
+      };
+    }
+    log.info('DEVTOOLS-CONNECT', mongoLogId(1_000_000_037), `${contextPrefix}-connect`, 'Connection attempt finished', attr);
   });
 
   emitter.on('devtools-connect:resolve-srv-error', function(ev: ConnectResolveSrvErrorEvent) {
