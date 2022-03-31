@@ -212,5 +212,9 @@ export async function connectMongoClient(
   uri = await resolveMongodbSrv(uri, logger);
   const client = new MongoClientClass(uri, clientOptions);
   await connectWithFailFast(uri, client, logger);
+  if (client.autoEncrypter) {
+    // Enable Devtools-specific CSFLE result decoration.
+    (client.autoEncrypter as any)[Symbol.for('@@mdb.decorateDecryptionResult')] = true;
+  }
   return client;
 }
