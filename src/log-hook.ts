@@ -1,5 +1,6 @@
 import type {
   ConnectAttemptInitializedEvent,
+  ConnectAttemptFinishedEvent,
   ConnectHeartbeatFailureEvent,
   ConnectHeartbeatSucceededEvent,
   ConnectResolveSrvErrorEvent,
@@ -44,8 +45,17 @@ export function hookLogger(
     log.warn('DEVTOOLS-CONNECT', mongoLogId(1_000_000_036), `${contextPrefix}-connect`, 'Aborting connection attempt as irrecoverable');
   });
 
-  emitter.on('devtools-connect:connect-attempt-finished', function() {
-    log.info('DEVTOOLS-CONNECT', mongoLogId(1_000_000_037), `${contextPrefix}-connect`, 'Connection attempt finished');
+  emitter.on('devtools-connect:connect-attempt-finished', function(ev: ConnectAttemptFinishedEvent) {
+    let attr: any;
+    if (ev.csfleVersionInfo) {
+      attr = {
+        csfleVersionInfo: {
+          version: ev.csfleVersionInfo.version.toString(16),
+          versionStr: ev.csfleVersionInfo.versionStr
+        }
+      };
+    }
+    log.info('DEVTOOLS-CONNECT', mongoLogId(1_000_000_037), `${contextPrefix}-connect`, 'Connection attempt finished', attr);
   });
 
   emitter.on('devtools-connect:resolve-srv-error', function(ev: ConnectResolveSrvErrorEvent) {

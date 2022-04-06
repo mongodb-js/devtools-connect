@@ -23,7 +23,8 @@ describe('Logging setup', () => {
     emitter.emit('devtools-connect:connect-heartbeat-failure', { connectionId: 'localhost', failure: new Error('cause'), isFailFast: true, isKnownServer: true });
     emitter.emit('devtools-connect:connect-heartbeat-succeeded', { connectionId: 'localhost' });
     emitter.emit('devtools-connect:connect-fail-early');
-    emitter.emit('devtools-connect:connect-attempt-finished');
+    emitter.emit('devtools-connect:connect-attempt-finished', { csfleVersionInfo: null });
+    emitter.emit('devtools-connect:connect-attempt-finished', { csfleVersionInfo: { version: BigInt(16), versionStr: 'v1' } });
     emitter.emit('devtools-connect:resolve-srv-error', {
       from: 'mongodb+srv://foo:bar@hello.world/',
       error: new Error('failed'),
@@ -95,6 +96,17 @@ describe('Logging setup', () => {
         id: 1000000037,
         ctx: 'prefix-connect',
         msg: 'Connection attempt finished'
+      },
+      {
+        t: { $date: '2021-12-16T14:35:08.763Z' },
+        s: 'I',
+        c: 'DEVTOOLS-CONNECT',
+        id: 1000000037,
+        ctx: 'prefix-connect',
+        msg: 'Connection attempt finished',
+        attr: {
+          csfleVersionInfo: { version: '10', versionStr: 'v1' }
+        }
       },
       {
         t: { $date: '2021-12-16T14:35:08.763Z' },

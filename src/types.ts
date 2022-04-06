@@ -5,6 +5,13 @@ export interface ConnectAttemptInitializedEvent {
   host: string;
 }
 
+export interface ConnectAttemptFinishedEvent {
+  csfleVersionInfo?: {
+    version: bigint;
+    versionStr: string;
+  } | null
+}
+
 export interface ConnectHeartbeatFailureEvent {
   connectionId: string;
   failure: Error;
@@ -56,7 +63,7 @@ export interface ConnectEventMap {
   /** Signals that the service provider failed to connect because it deemed further attempts futile. */
   'devtools-connect:connect-fail-early': () => void;
   /** Signals that the service provider finished attempting to connect, regardless of success. */
-  'devtools-connect:connect-attempt-finished': () => void;
+  'devtools-connect:connect-attempt-finished': (ev: ConnectAttemptFinishedEvent) => void;
   /** Signals that resolving an mongodb+srv:// URL failed. */
   'devtools-connect:resolve-srv-error': (ev: ConnectResolveSrvErrorEvent) => void;
   /** Signals that resolving an mongodb+srv:// URL succeeded. */
