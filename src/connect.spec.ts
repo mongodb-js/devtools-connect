@@ -168,6 +168,19 @@ describe('devtools connect', () => {
       expect(mClientType.getCalls()).to.have.lengthOf(1);
       expect(mClientType.getCalls()[0].args[1].ca).to.be.a('string');
       expect(mClientType.getCalls()[0].args[1].ca).to.include('-----BEGIN CERTIFICATE-----');
+      expect(mClientType.getCalls()[0].args[1]).to.not.have.property('useSystemCA');
+      expect(mClient.connect.getCalls()).to.have.lengthOf(1);
+      expect(result).to.equal(mClient);
+    });
+
+    it('does not pass useSystemCA: false to the driver', async() => {
+      const uri = 'localhost:27017';
+      const mClient = stubConstructor(FakeMongoClient);
+      const mClientType = sinon.stub().returns(mClient);
+      mClient.connect.onFirstCall().resolves(mClient);
+      const result = await connectMongoClient(uri, { useSystemCA: false }, bus, mClientType as any);
+      expect(mClientType.getCalls()).to.have.lengthOf(1);
+      expect(mClientType.getCalls()[0].args[1]).to.not.have.property('useSystemCA');
       expect(mClient.connect.getCalls()).to.have.lengthOf(1);
       expect(result).to.equal(mClient);
     });
