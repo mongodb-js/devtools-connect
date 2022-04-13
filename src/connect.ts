@@ -192,8 +192,8 @@ export async function connectMongoClient(
       ...clientOptions,
       ca: ca.join('\n')
     };
-    delete clientOptions.useSystemCA;
   }
+  delete clientOptions.useSystemCA;
   if (clientOptions.autoEncryption !== undefined &&
     !clientOptions.autoEncryption.bypassAutoEncryption) {
     // connect first without autoEncryption and serverApi options.
