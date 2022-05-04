@@ -103,7 +103,100 @@ describe('devtools connect', () => {
       }
       expect.fail('Failed to throw expected error');
     });
+
     it('errors when bypassAutoEncryption is falsy, missing modules', async() => {
+      const uri = 'localhost:27017';
+      const opts = { autoEncryption: {} };
+      const mClientFirst = stubConstructor(FakeMongoClient);
+      const mClientSecond = stubConstructor(FakeMongoClient);
+      const mClientType = sinon.stub();
+      const commandSpy = sinon.spy();
+      mClientFirst.db.returns({
+        admin: () => ({
+          command: (...args: any[]) => {
+            commandSpy(...args);
+            return {};
+          }
+        } as any)
+      } as any);
+      mClientType.onFirstCall().returns(mClientFirst);
+      mClientType.onSecondCall().returns(mClientSecond);
+      try {
+        await connectMongoClient(uri, opts, bus, mClientType as any);
+      } catch (e: any) {
+        return expect(e.message.toLowerCase()).to.include('automatic encryption');
+      }
+      expect.fail('Failed to throw expected error');
+    });
+
+    it('connects once when bypassQueryAnalysis is true', async() => {
+      const uri = 'localhost:27017';
+      const opts = { autoEncryption: { bypassQueryAnalysis: true } };
+      const mClient = stubConstructor(FakeMongoClient);
+      const mClientType = sinon.stub().returns(mClient);
+      mClient.connect.onFirstCall().resolves(mClient);
+      // @ts-expect-error waiting for driver release
+      const result = await connectMongoClient(uri, opts, bus, mClientType as any);
+      expect(mClientType.getCalls()).to.have.lengthOf(1);
+      expect(mClientType.getCalls()[0].args).to.deep.equal([uri, opts]);
+      expect(mClient.connect.getCalls()).to.have.lengthOf(1);
+      expect(result).to.equal(mClient);
+    });
+
+    it('connects twice when bypassQueryAnalysis is false and enterprise via modules', async() => {
+      const uri = 'localhost:27017';
+      const opts = { autoEncryption: { bypassQueryAnalysis: false } };
+      const mClientFirst = stubConstructor(FakeMongoClient);
+      const mClientSecond = stubConstructor(FakeMongoClient);
+      const mClientType = sinon.stub();
+      const commandSpy = sinon.spy();
+      mClientFirst.db.returns({
+        admin: () => ({
+          command: (...args: any[]) => {
+            commandSpy(...args);
+            return { modules: ['enterprise'] };
+          }
+        } as any)
+      } as any);
+      mClientType.onFirstCall().returns(mClientFirst);
+      mClientType.onSecondCall().returns(mClientSecond);
+      // @ts-expect-error waiting for driver release
+      const result = await connectMongoClient(uri, opts, bus, mClientType as any);
+      const calls = mClientType.getCalls();
+      expect(calls.length).to.equal(2);
+      expect(calls[0].args).to.deep.equal([
+        uri, {}
+      ]);
+      expect(commandSpy).to.have.been.calledOnceWithExactly({ buildInfo: 1 });
+      expect(result).to.equal(mClientSecond);
+    });
+
+    it('errors when bypassQueryAnalysis is falsy and not enterprise', async() => {
+      const uri = 'localhost:27017';
+      const opts = { autoEncryption: {} };
+      const mClientFirst = stubConstructor(FakeMongoClient);
+      const mClientSecond = stubConstructor(FakeMongoClient);
+      const mClientType = sinon.stub();
+      const commandSpy = sinon.spy();
+      mClientFirst.db.returns({
+        admin: () => ({
+          command: (...args: any[]) => {
+            commandSpy(...args);
+            return { modules: [] };
+          }
+        } as any)
+      } as any);
+      mClientType.onFirstCall().returns(mClientFirst);
+      mClientType.onSecondCall().returns(mClientSecond);
+      try {
+        await connectMongoClient(uri, opts, bus, mClientType as any);
+      } catch (e: any) {
+        return expect(e.message.toLowerCase()).to.include('automatic encryption');
+      }
+      expect.fail('Failed to throw expected error');
+    });
+
+    it('errors when bypassQueryAnalysis is falsy, missing modules', async() => {
       const uri = 'localhost:27017';
       const opts = { autoEncryption: {} };
       const mClientFirst = stubConstructor(FakeMongoClient);
