@@ -196,7 +196,6 @@ export async function connectMongoClient(
   delete clientOptions.useSystemCA;
   if (clientOptions.autoEncryption !== undefined &&
     !clientOptions.autoEncryption.bypassAutoEncryption &&
-    // @ts-expect-error waiting for driver release
     !clientOptions.autoEncryption.bypassQueryAnalysis) {
     // connect first without autoEncryption and serverApi options.
     const optionsWithoutFLE = { ...clientOptions };
