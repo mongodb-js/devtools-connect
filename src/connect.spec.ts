@@ -135,6 +135,7 @@ describe('devtools connect', () => {
       const mClient = stubConstructor(FakeMongoClient);
       const mClientType = sinon.stub().returns(mClient);
       mClient.connect.onFirstCall().resolves(mClient);
+      // @ts-expect-error waiting for driver release
       const result = await connectMongoClient(uri, opts, bus, mClientType as any);
       expect(mClientType.getCalls()).to.have.lengthOf(1);
       expect(mClientType.getCalls()[0].args).to.deep.equal([uri, opts]);
@@ -159,6 +160,7 @@ describe('devtools connect', () => {
       } as any);
       mClientType.onFirstCall().returns(mClientFirst);
       mClientType.onSecondCall().returns(mClientSecond);
+      // @ts-expect-error waiting for driver release
       const result = await connectMongoClient(uri, opts, bus, mClientType as any);
       const calls = mClientType.getCalls();
       expect(calls.length).to.equal(2);
