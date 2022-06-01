@@ -75,7 +75,7 @@ async function connectWithFailFast(uri: string, client: MongoClient, logger: Con
     client.removeListener('serverHeartbeatFailed', heartbeatFailureListener);
     client.removeListener('serverHeartbeatSucceeded', heartbeatSucceededListener);
     logger.emit('devtools-connect:connect-attempt-finished', {
-      csfleVersionInfo: (client?.autoEncrypter as any /* NODE-4085 */)?.csfleVersionInfo
+      cryptSharedLibVersionInfo: (client?.autoEncrypter as any /* NODE-4085 */)?.cryptSharedLibVersionInfo
     });
   }
 }
