@@ -47,11 +47,11 @@ export function hookLogger(
 
   emitter.on('devtools-connect:connect-attempt-finished', function(ev: ConnectAttemptFinishedEvent) {
     let attr: any;
-    if (ev.csfleVersionInfo) {
+    if (ev.cryptSharedLibVersionInfo) {
       attr = {
-        csfleVersionInfo: {
-          version: ev.csfleVersionInfo.version.toString(16),
-          versionStr: ev.csfleVersionInfo.versionStr
+        cryptSharedLibVersionInfo: {
+          version: ev.cryptSharedLibVersionInfo.version.toString(16),
+          versionStr: ev.cryptSharedLibVersionInfo.versionStr
         }
       };
     }

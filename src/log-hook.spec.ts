@@ -23,8 +23,8 @@ describe('Logging setup', () => {
     emitter.emit('devtools-connect:connect-heartbeat-failure', { connectionId: 'localhost', failure: new Error('cause'), isFailFast: true, isKnownServer: true });
     emitter.emit('devtools-connect:connect-heartbeat-succeeded', { connectionId: 'localhost' });
     emitter.emit('devtools-connect:connect-fail-early');
-    emitter.emit('devtools-connect:connect-attempt-finished', { csfleVersionInfo: null });
-    emitter.emit('devtools-connect:connect-attempt-finished', { csfleVersionInfo: { version: BigInt(16), versionStr: 'v1' } });
+    emitter.emit('devtools-connect:connect-attempt-finished', { cryptSharedLibVersionInfo: null });
+    emitter.emit('devtools-connect:connect-attempt-finished', { cryptSharedLibVersionInfo: { version: BigInt(16), versionStr: 'v1' } });
     emitter.emit('devtools-connect:resolve-srv-error', {
       from: 'mongodb+srv://foo:bar@hello.world/',
       error: new Error('failed'),
@@ -105,7 +105,7 @@ describe('Logging setup', () => {
         ctx: 'prefix-connect',
         msg: 'Connection attempt finished',
         attr: {
-          csfleVersionInfo: { version: '10', versionStr: 'v1' }
+          cryptSharedLibVersionInfo: { version: '10', versionStr: 'v1' }
         }
       },
       {

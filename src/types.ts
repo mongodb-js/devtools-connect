@@ -6,7 +6,7 @@ export interface ConnectAttemptInitializedEvent {
 }
 
 export interface ConnectAttemptFinishedEvent {
-  csfleVersionInfo?: {
+  cryptSharedLibVersionInfo?: {
     version: bigint;
     versionStr: string;
   } | null
