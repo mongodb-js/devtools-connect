@@ -75,7 +75,7 @@ async function connectWithFailFast(uri: string, client: MongoClient, logger: Con
     client.removeListener('serverHeartbeatFailed', heartbeatFailureListener);
     client.removeListener('serverHeartbeatSucceeded', heartbeatSucceededListener);
     logger.emit('devtools-connect:connect-attempt-finished', {
-      cryptSharedLibVersionInfo: (client?.autoEncrypter as any /* NODE-4085 */)?.cryptSharedLibVersionInfo
+      cryptSharedLibVersionInfo: (client?.autoEncrypter as any /* NODE-4285 */)?.cryptSharedLibVersionInfo
     });
   }
 }
@@ -196,7 +196,6 @@ export async function connectMongoClient(
   delete clientOptions.useSystemCA;
   if (clientOptions.autoEncryption !== undefined &&
     !clientOptions.autoEncryption.bypassAutoEncryption &&
-    // @ts-expect-error waiting for driver release
     !clientOptions.autoEncryption.bypassQueryAnalysis) {
     // connect first without autoEncryption and serverApi options.
     const optionsWithoutFLE = { ...clientOptions };
