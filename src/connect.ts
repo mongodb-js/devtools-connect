@@ -9,6 +9,10 @@ import type {
 } from 'mongodb';
 import type { ConnectDnsResolutionDetail } from './types';
 import { systemCertsAsync, Options as SystemCAOptions } from 'system-ca';
+import type { MongoDBOIDCPlugin, MongoDBOIDCPluginOptions } from '@mongodb-js/oidc-plugin';
+import { createMongoDBOIDCPlugin } from '@mongodb-js/oidc-plugin';
+import merge from 'lodash.merge';
+import { oidcServerRequestHandler } from './oidc/handler';
 
 export class MongoAutoencryptionUnavailable extends Error {
   constructor() {
@@ -166,8 +170,47 @@ function detectAndLogMissingOptionalDependencies(logger: ConnectLogEmitter) {
   }
 }
 
+// Wrapper for all state that a devtools application may want to share
+// between MongoClient instances. Currently, this is only the OIDC state.
+// TODO(MONGOSH-1386): We'll likely want to add code to this to enable
+// sharing the connection state over an external channel (e.g. local socket).
+// This would include implementing RPC-like access to the OIDC plugin,
+// including the MongoClient callbacks and events emitted from `.logger`.
+class DevtoolsConnectionState {
+  oidcPlugin: MongoDBOIDCPlugin;
+
+  constructor(options: Pick<DevtoolsConnectOptions, 'productDocsLink' | 'productName' | 'oidc'>, logger: ConnectLogEmitter) {
+    this.oidcPlugin = createMongoDBOIDCPlugin({
+      ...options.oidc,
+      logger,
+      redirectServerRequestHandler: oidcServerRequestHandler.bind(null, options)
+    });
+  }
+}
+
 export interface DevtoolsConnectOptions extends MongoClientOptions {
+  /**
+   * Whether to read the system certificate store and pass that as the `ca` option
+   * to the driver for certificate validation.
+   */
   useSystemCA?: boolean;
+  /**
+   * An URL that refers to the documentation for the current product.
+   */
+  productDocsLink: string;
+  /**
+   * A human-readable name for the current product (e.g. "MongoDB Compass").
+   */
+  productName: string;
+  /**
+   * A set of options to pass when creating the OIDC plugin. Ignored if `parentState` is set.
+   */
+  oidc?: Omit<MongoDBOIDCPluginOptions, 'logger' | 'redirectServerRequestHandler'>;
+  /**
+   * A `DevtoolsConnectionState` object that refers to the state resulting from another
+   * `connectMongoClient()` call.
+   */
+  parentState?: DevtoolsConnectionState;
 }
 
 /**
@@ -179,7 +222,10 @@ export async function connectMongoClient(
   uri: string,
   clientOptions: DevtoolsConnectOptions,
   logger: ConnectLogEmitter,
-  MongoClientClass: typeof MongoClient): Promise<MongoClient> {
+  MongoClientClass: typeof MongoClient): Promise<{
+    client: MongoClient,
+    state: DevtoolsConnectionState
+  }> {
   detectAndLogMissingOptionalDependencies(logger);
   if (clientOptions.useSystemCA) {
     const systemCAOpts: SystemCAOptions = { includeNodeCertificates: true };
@@ -193,15 +239,25 @@ export async function connectMongoClient(
       ca: ca.join('\n')
     };
   }
-  delete clientOptions.useSystemCA;
-  if (clientOptions.autoEncryption !== undefined &&
-    !clientOptions.autoEncryption.bypassAutoEncryption &&
-    !clientOptions.autoEncryption.bypassQueryAnalysis) {
+
+  const state = clientOptions.parentState ?? new DevtoolsConnectionState(clientOptions, logger);
+  const mongoClientOptions: MongoClientOptions & Partial<DevtoolsConnectOptions> =
+    merge({}, clientOptions, state.oidcPlugin.mongoClientOptions);
+  delete mongoClientOptions.useSystemCA;
+  delete mongoClientOptions.productDocsLink;
+  delete mongoClientOptions.productName;
+  delete mongoClientOptions.oidc;
+  delete mongoClientOptions.parentState;
+
+  if (mongoClientOptions.autoEncryption !== undefined &&
+    !mongoClientOptions.autoEncryption.bypassAutoEncryption &&
+    !mongoClientOptions.autoEncryption.bypassQueryAnalysis) {
     // connect first without autoEncryption and serverApi options.
-    const optionsWithoutFLE = { ...clientOptions };
+    const optionsWithoutFLE = { ...mongoClientOptions };
     delete optionsWithoutFLE.autoEncryption;
     delete optionsWithoutFLE.serverApi;
     const client = new MongoClientClass(uri, optionsWithoutFLE);
+    state.oidcPlugin.logger.on('mongodb-oidc-plugin:auth-failed', () => client.close());
     await connectWithFailFast(uri, client, logger);
     const buildInfo = await client.db('admin').admin().command({ buildInfo: 1 });
     await client.close();
@@ -213,11 +269,12 @@ export async function connectMongoClient(
     }
   }
   uri = await resolveMongodbSrv(uri, logger);
-  const client = new MongoClientClass(uri, clientOptions);
+  const client = new MongoClientClass(uri, mongoClientOptions);
+  state.oidcPlugin.logger.on('mongodb-oidc-plugin:auth-failed', () => client.close());
   await connectWithFailFast(uri, client, logger);
   if (client.autoEncrypter) {
     // Enable Devtools-specific CSFLE result decoration.
     (client.autoEncrypter as any)[Symbol.for('@@mdb.decorateDecryptionResult')] = true;
   }
-  return client;
+  return { client, state };
 }
