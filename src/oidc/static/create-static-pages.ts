@@ -30,7 +30,6 @@ function placeholder(prop: string): string {
   return `{{prop:${prop}}}`;
 }
 
-const markupTable: Record<string, string> = {};
 const S = JSON.stringify; // Useful for embedding strings into real JS code.
 
 // Generate static pages based on a component.
@@ -40,16 +39,17 @@ const S = JSON.stringify; // Useful for embedding strings into real JS code.
 // will be emitted.
 // Rather than including the generated markup directly, it is saved to a global
 // table and emitted later, so that that global table can be compressed.
-function generateStaticPage<PropNames extends string>(
-  Component: React.FunctionComponent<Partial<Record<PropNames, string>>> & { name: string },
-  props: PropNames[]
+function generateStaticPage(
+  Component: React.FunctionComponent<Partial<Record<string, string>>> & { name: string },
+  props: string[],
+  markupTable: Record<string, string>
 ): string {
   let result = `module.exports[${S(Component.name)}] = function(props) {
     const actualProps = JSON.stringify(
       Object.keys(props)
         .filter(prop => ${S(props)}.includes(prop) && props[prop] != null).sort());`;
   for (const availableProps of allSubsets(props)) {
-    const propsObject: Partial<Record<PropNames, string>> = {};
+    const propsObject: Partial<Record<string, string>> = {};
     const replacers: string[] = [];
     for (const prop of availableProps) {
       propsObject[prop] = placeholder(prop);
@@ -70,30 +70,46 @@ function generateStaticPage<PropNames extends string>(
 }
 
 // Create CJS module with pages as exports.
-console.log('"use strict";');
-console.log('function escapeHTML(str) { return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/\'/g, "&#039;");} ');
-console.log(generateStaticPage(OIDCErrorPage, ['error', 'errorDescription', 'errorURI', 'productDocsLink', 'productName']));
-console.log(generateStaticPage(OIDCAcceptedPage, ['productDocsLink', 'productName']));
-console.log(generateStaticPage(OIDCNotFoundPage, ['productDocsLink', 'productName']));
+export function generateStaticPagesModule<PropNames extends string>(components: [React.FunctionComponent<Partial<Record<PropNames, string>>> & {name:string}, string[]][]): string {
+  let result = `
+  'use strict';
+  function escapeHTML(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+  `;
+  const markupTable: Record<string, string> = {};
+  for (const component of components) {
+    result += generateStaticPage(...component, markupTable);
+  }
 
-// At the time of writing, brotli compression results in a 96% size decrease
-// in the resulting file. We decompress the markup table lazily, so that it
-// is not loaded into memory when OIDC is not in use.
-const compressedMarkupTable = brotliCompressSync(S(markupTable), {
-  params: {
-    [zlibConstants.BROTLI_PARAM_MODE]: zlibConstants.BROTLI_MODE_TEXT,
-    [zlibConstants.BROTLI_PARAM_QUALITY]: zlibConstants.BROTLI_MAX_QUALITY
+  // At the time of writing, brotli compression results in a 96% size decrease
+  // in the resulting file. We decompress the markup table lazily, so that it
+  // is not loaded into memory when OIDC is not in use.
+  const compressedMarkupTable = brotliCompressSync(S(markupTable), {
+    params: {
+      [zlibConstants.BROTLI_PARAM_MODE]: zlibConstants.BROTLI_MODE_TEXT,
+      [zlibConstants.BROTLI_PARAM_QUALITY]: zlibConstants.BROTLI_MAX_QUALITY
+    }
+  });
+  result += `
+  const markupTableSrc = ${S(compressedMarkupTable.toString('base64'))};
+  let markupTable;
+  function getMarkup(hash) {
+    if (markupTable === undefined) {
+      markupTable = JSON.parse(
+        require('zlib').brotliDecompressSync(
+          Buffer.from(markupTableSrc, 'base64')));
+    }
+    return markupTable[hash];
   }
-});
-console.log(`
-const markupTableSrc = ${S(compressedMarkupTable.toString('base64'))};
-let markupTable;
-function getMarkup(hash) {
-  if (markupTable === undefined) {
-    markupTable = JSON.parse(
-      require('zlib').brotliDecompressSync(
-        Buffer.from(markupTableSrc, 'base64')));
-  }
-  return markupTable[hash];
+  `;
+  return result;
 }
-`);
+
+if (require.main === module) {
+  console.log(generateStaticPagesModule([
+    [OIDCErrorPage, ['error', 'errorDescription', 'errorURI', 'productDocsLink', 'productName']],
+    [OIDCAcceptedPage, ['productDocsLink', 'productName']],
+    [OIDCNotFoundPage, ['productDocsLink', 'productName']]
+  ]));
+}

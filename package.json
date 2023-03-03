@@ -26,8 +26,8 @@
     ".esm-wrapper.mjs"
   ],
   "scripts": {
-    "lint": "eslint src/**/*.ts",
-    "testonly": "nyc mocha --colors -r ts-node/register src/*.spec.ts",
+    "lint": "eslint src/**/*.ts src/**/*.tsx",
+    "testonly": "nyc mocha --colors -r ts-node/register src/**/*.spec.ts src/**/*.spec.tsx",
     "test": "npm run lint && npm run build && npm run testonly",
     "build": "npm run compile-ts && gen-esm-wrapper . ./.esm-wrapper.mjs",
     "prepack": "npm run build",
