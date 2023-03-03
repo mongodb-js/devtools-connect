@@ -1,4 +1,4 @@
-import { connectMongoClient } from '../';
+import { connectMongoClient, DevtoolsConnectOptions } from '../';
 import { EventEmitter } from 'events';
 import { MongoClient } from 'mongodb';
 import sinon, { stubConstructor } from 'ts-sinon';
@@ -8,9 +8,14 @@ chai.use(sinonChai);
 
 describe('devtools connect', () => {
   let bus: EventEmitter;
+  let defaultOpts: DevtoolsConnectOptions;
 
   beforeEach(() => {
     bus = new EventEmitter();
+    defaultOpts = {
+      productDocsLink: 'https://example.com',
+      productName: 'Devtools Test'
+    };
   });
 
   describe('connectMongoClient', () => {
@@ -32,11 +37,11 @@ describe('devtools connect', () => {
       const mClient = stubConstructor(FakeMongoClient);
       const mClientType = sinon.stub().returns(mClient);
       mClient.connect.onFirstCall().resolves(mClient);
-      const result = await connectMongoClient(uri, {}, bus, mClientType as any);
+      const result = await connectMongoClient(uri, defaultOpts, bus, mClientType as any);
       expect(mClientType.getCalls()).to.have.lengthOf(1);
       expect(mClientType.getCalls()[0].args).to.deep.equal([uri, {}]);
       expect(mClient.connect.getCalls()).to.have.lengthOf(1);
-      expect(result).to.equal(mClient);
+      expect(result.client).to.equal(mClient);
     });
 
     it('connects once when bypassAutoEncryption is true', async() => {
@@ -45,16 +50,16 @@ describe('devtools connect', () => {
       const mClient = stubConstructor(FakeMongoClient);
       const mClientType = sinon.stub().returns(mClient);
       mClient.connect.onFirstCall().resolves(mClient);
-      const result = await connectMongoClient(uri, opts, bus, mClientType as any);
+      const result = await connectMongoClient(uri, { ...defaultOpts, ...opts }, bus, mClientType as any);
       expect(mClientType.getCalls()).to.have.lengthOf(1);
       expect(mClientType.getCalls()[0].args).to.deep.equal([uri, opts]);
       expect(mClient.connect.getCalls()).to.have.lengthOf(1);
-      expect(result).to.equal(mClient);
+      expect(result.client).to.equal(mClient);
     });
 
     it('connects twice when bypassAutoEncryption is false and enterprise via modules', async() => {
       const uri = 'localhost:27017';
-      const opts = { autoEncryption: { bypassAutoEncryption: false } };
+      const opts = { ...defaultOpts, autoEncryption: { bypassAutoEncryption: false } };
       const mClientFirst = stubConstructor(FakeMongoClient);
       const mClientSecond = stubConstructor(FakeMongoClient);
       const mClientType = sinon.stub();
@@ -76,12 +81,12 @@ describe('devtools connect', () => {
         uri, {}
       ]);
       expect(commandSpy).to.have.been.calledOnceWithExactly({ buildInfo: 1 });
-      expect(result).to.equal(mClientSecond);
+      expect(result.client).to.equal(mClientSecond);
     });
 
     it('errors when bypassAutoEncryption is falsy and not enterprise', async() => {
       const uri = 'localhost:27017';
-      const opts = { autoEncryption: {} };
+      const opts = { ...defaultOpts, autoEncryption: {} };
       const mClientFirst = stubConstructor(FakeMongoClient);
       const mClientSecond = stubConstructor(FakeMongoClient);
       const mClientType = sinon.stub();
@@ -106,7 +111,7 @@ describe('devtools connect', () => {
 
     it('errors when bypassAutoEncryption is falsy, missing modules', async() => {
       const uri = 'localhost:27017';
-      const opts = { autoEncryption: {} };
+      const opts = { ...defaultOpts, autoEncryption: {} };
       const mClientFirst = stubConstructor(FakeMongoClient);
       const mClientSecond = stubConstructor(FakeMongoClient);
       const mClientType = sinon.stub();
@@ -135,16 +140,16 @@ describe('devtools connect', () => {
       const mClient = stubConstructor(FakeMongoClient);
       const mClientType = sinon.stub().returns(mClient);
       mClient.connect.onFirstCall().resolves(mClient);
-      const result = await connectMongoClient(uri, opts, bus, mClientType as any);
+      const result = await connectMongoClient(uri, { ...defaultOpts, ...opts }, bus, mClientType as any);
       expect(mClientType.getCalls()).to.have.lengthOf(1);
       expect(mClientType.getCalls()[0].args).to.deep.equal([uri, opts]);
       expect(mClient.connect.getCalls()).to.have.lengthOf(1);
-      expect(result).to.equal(mClient);
+      expect(result.client).to.equal(mClient);
     });
 
     it('connects twice when bypassQueryAnalysis is false and enterprise via modules', async() => {
       const uri = 'localhost:27017';
-      const opts = { autoEncryption: { bypassQueryAnalysis: false } };
+      const opts = { ...defaultOpts, autoEncryption: { bypassQueryAnalysis: false } };
       const mClientFirst = stubConstructor(FakeMongoClient);
       const mClientSecond = stubConstructor(FakeMongoClient);
       const mClientType = sinon.stub();
@@ -166,12 +171,12 @@ describe('devtools connect', () => {
         uri, {}
       ]);
       expect(commandSpy).to.have.been.calledOnceWithExactly({ buildInfo: 1 });
-      expect(result).to.equal(mClientSecond);
+      expect(result.client).to.equal(mClientSecond);
     });
 
     it('errors when bypassQueryAnalysis is falsy and not enterprise', async() => {
       const uri = 'localhost:27017';
-      const opts = { autoEncryption: {} };
+      const opts = { ...defaultOpts, autoEncryption: {} };
       const mClientFirst = stubConstructor(FakeMongoClient);
       const mClientSecond = stubConstructor(FakeMongoClient);
       const mClientType = sinon.stub();
@@ -196,7 +201,7 @@ describe('devtools connect', () => {
 
     it('errors when bypassQueryAnalysis is falsy, missing modules', async() => {
       const uri = 'localhost:27017';
-      const opts = { autoEncryption: {} };
+      const opts = { ...defaultOpts, autoEncryption: {} };
       const mClientFirst = stubConstructor(FakeMongoClient);
       const mClientSecond = stubConstructor(FakeMongoClient);
       const mClientType = sinon.stub();
@@ -242,7 +247,7 @@ describe('devtools connect', () => {
         }
       };
       try {
-        await connectMongoClient(uri, {}, bus, mClientType as any);
+        await connectMongoClient(uri, defaultOpts, bus, mClientType as any);
       } catch (e) {
         expect((mClient.close as any).getCalls()).to.have.lengthOf(1);
         return expect(e).to.equal(err);
@@ -255,13 +260,13 @@ describe('devtools connect', () => {
       const mClient = stubConstructor(FakeMongoClient);
       const mClientType = sinon.stub().returns(mClient);
       mClient.connect.onFirstCall().resolves(mClient);
-      const result = await connectMongoClient(uri, { useSystemCA: true }, bus, mClientType as any);
+      const result = await connectMongoClient(uri, { ...defaultOpts, useSystemCA: true }, bus, mClientType as any);
       expect(mClientType.getCalls()).to.have.lengthOf(1);
       expect(mClientType.getCalls()[0].args[1].ca).to.be.a('string');
       expect(mClientType.getCalls()[0].args[1].ca).to.include('-----BEGIN CERTIFICATE-----');
       expect(mClientType.getCalls()[0].args[1]).to.not.have.property('useSystemCA');
       expect(mClient.connect.getCalls()).to.have.lengthOf(1);
-      expect(result).to.equal(mClient);
+      expect(result.client).to.equal(mClient);
     });
 
     it('does not pass useSystemCA: false to the driver', async() => {
@@ -269,11 +274,11 @@ describe('devtools connect', () => {
       const mClient = stubConstructor(FakeMongoClient);
       const mClientType = sinon.stub().returns(mClient);
       mClient.connect.onFirstCall().resolves(mClient);
-      const result = await connectMongoClient(uri, { useSystemCA: false }, bus, mClientType as any);
+      const result = await connectMongoClient(uri, { ...defaultOpts, useSystemCA: false }, bus, mClientType as any);
       expect(mClientType.getCalls()).to.have.lengthOf(1);
       expect(mClientType.getCalls()[0].args[1]).to.not.have.property('useSystemCA');
       expect(mClient.connect.getCalls()).to.have.lengthOf(1);
-      expect(result).to.equal(mClient);
+      expect(result.client).to.equal(mClient);
     });
   });
 
@@ -286,7 +291,7 @@ describe('devtools connect', () => {
 
     it('successfully connects to mongod service', async() => {
       const bus = new EventEmitter();
-      const client = await connectMongoClient(process.env.MONGODB_URI ?? '', {}, bus, MongoClient);
+      const { client } = await connectMongoClient(process.env.MONGODB_URI ?? '', defaultOpts, bus, MongoClient);
       expect((await client.db('admin').command({ ping: 1 })).ok).to.equal(1);
       await client.close();
     });
