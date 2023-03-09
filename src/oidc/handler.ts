@@ -9,6 +9,9 @@ export function oidcServerRequestHandler(
   const { productDocsLink, productName } = options;
   const { res, result, status } = info;
   res.statusCode = status;
+  // This CSP is fairly restrictive. Since we are sending static pages only, the security
+  // effects of this are limited, but this is also helpful for verifying that the generated
+  // pages do not unintentionally rely on external resources (which they should never do).
   res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'unsafe-inline'");
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
 
