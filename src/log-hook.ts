@@ -10,11 +10,13 @@ import type {
   ConnectLogEmitter
 } from './types';
 
+import { hookLoggerToMongoLogWriter as oidcHookLogger } from '@mongodb-js/oidc-plugin';
+
 interface MongoLogWriter {
   info(c: string, id: unknown, ctx: string, msg: string, attr?: any): void;
   warn(c: string, id: unknown, ctx: string, msg: string, attr?: any): void;
   error(c: string, id: unknown, ctx: string, msg: string, attr?: any): void;
-  mongoLogId(id: number): unknown;
+  mongoLogId(this: void, id: number): unknown;
 }
 
 export function hookLogger(
@@ -22,6 +24,8 @@ export function hookLogger(
   log: MongoLogWriter,
   contextPrefix: string,
   redactURICredentials: (uri: string) => string): void {
+  oidcHookLogger(emitter, log, contextPrefix);
+
   const { mongoLogId } = log;
   emitter.on('devtools-connect:connect-attempt-initialized', function(ev: ConnectAttemptInitializedEvent) {
     log.info('DEVTOOLS-CONNECT', mongoLogId(1_000_000_042), `${contextPrefix}-connect`, 'Initiating connection attempt', {
