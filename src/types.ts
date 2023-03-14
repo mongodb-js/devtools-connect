@@ -1,3 +1,5 @@
+import type { MongoDBOIDCLogEventsMap } from '@mongodb-js/oidc-plugin';
+
 export interface ConnectAttemptInitializedEvent {
   uri: string;
   driver: { name: string, version: string };
@@ -53,7 +55,7 @@ export interface ConnectUsedSystemCAEvent {
   asyncFallbackError: Error | undefined;
 }
 
-export interface ConnectEventMap {
+export interface ConnectEventMap extends MongoDBOIDCLogEventsMap {
   /** Signals that a connection attempt is about to be performed. */
   'devtools-connect:connect-attempt-initialized': (ev: ConnectAttemptInitializedEvent) => void;
   /** Signals that communicating to a specific server during connection did not succeed. */
