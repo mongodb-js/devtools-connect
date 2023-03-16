@@ -37,7 +37,7 @@
   "dependencies": {
     "lodash.merge": "^4.6.2",
     "system-ca": "^1.0.2",
-    "@mongodb-js/oidc-plugin": "^0.1.0-alpha.0"
+    "@mongodb-js/oidc-plugin": "^0.1.0-alpha.1"
   },
   "peerDependencies": {
     "mongodb": "^4.2.2 || ^5.0.0",
