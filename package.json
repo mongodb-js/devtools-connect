@@ -36,8 +36,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "lodash.merge": "^4.6.2",
-    "system-ca": "^1.0.2",
-    "@mongodb-js/oidc-plugin": "^0.1.0-alpha.1"
+    "system-ca": "^1.0.2"
   },
   "peerDependencies": {
     "mongodb": "^4.2.2 || ^5.0.0",
@@ -45,6 +44,7 @@
   },
   "devDependencies": {
     "@mongodb-js/compass-components": "^1.6.0",
+    "@mongodb-js/oidc-plugin": "^0.1.0-alpha.2",
     "@types/lodash.merge": "^4.6.7",
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.4.10",
