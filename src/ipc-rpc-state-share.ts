@@ -5,8 +5,9 @@ import { promisify } from 'util';
 import crypto from 'crypto';
 import os from 'os';
 import { once, EventEmitter } from 'events';
-import { promises as fs } from 'fs';
+import { promises as fs, rmSync } from 'fs';
 import { PassThrough, Readable } from 'stream';
+import { resolve as resolvePath } from 'path';
 
 // Read data from `input` that has been signed with `sign()` and match
 // the provided signature against the actual one.
@@ -46,6 +47,7 @@ export abstract class RpcServer {
   private hmacKey: Buffer;
   private server: HTTPServer;
   private serverPathPrefix: string;
+  private cleanupCallback?: () => void;
   static ctr = 0;
 
   protected constructor(serverPathPrefix: string) {
@@ -68,13 +70,16 @@ export abstract class RpcServer {
   }
 
   private async _serverListen(): Promise<void> {
-    let path;
+    if (this.cleanupCallback) {
+      throw new Error('RPC server already listening');
+    }
+    let path: string;
     const name = `${this.serverPathPrefix}_${process.pid}_ipc_${RpcServer.ctr++}_${Math.floor(Math.random() * 10000)}`;
     if (process.platform === 'win32') {
       path = `\\\\.\\pipe\\${name}`;
     } else {
       const tmpdir = process.env.XDG_RUNTIME_DIR ?? os.tmpdir();
-      path = `${tmpdir}/${name}.sock`;
+      path = resolvePath(`${tmpdir}/${name}.sock`);
     }
     this.server.listen({ path, exclusive: true });
     await once(this.server, 'listening');
@@ -82,6 +87,18 @@ export abstract class RpcServer {
     // to the Node.js API for sockets. We said we'd set the file mode to 0o600
     // in the design and it probably doesn't hurt to do this either way.
     await fs.chmod(path, 0o600);
+
+    // In practice, mongosh and Compass may not always know when a connection
+    // state fully closes, so we're adding a process 'exit' listener that cleans
+    // up the file if it hasn't bee closed so far.
+    this.cleanupCallback = () => {
+      if (process.platform !== 'win32') {
+        try {
+          rmSync(path);
+        } catch { /* ignore */ }
+      }
+    };
+    process.on('exit', this.cleanupCallback);
   }
 
   private async _handleRequest(req: IncomingMessage, res: ServerResponse) {
@@ -105,6 +122,8 @@ export abstract class RpcServer {
   public async close(): Promise<void> {
     this.server.close();
     await once(this.server, 'close');
+    this.cleanupCallback?.();
+    this.cleanupCallback = undefined;
   }
 
   protected abstract handleRpc(content: Record<string, unknown>): Promise<Record<string, unknown>>;

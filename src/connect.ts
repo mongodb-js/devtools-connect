@@ -206,6 +206,10 @@ export class DevtoolsConnectionState {
     this.stateShareServer ??= await StateShareServer.create(this);
     return this.stateShareServer.handle;
   }
+
+  async destroy(): Promise<void> {
+    await this.stateShareServer?.close();
+  }
 }
 
 export interface DevtoolsConnectOptions extends MongoClientOptions {
@@ -235,6 +239,9 @@ export interface DevtoolsConnectOptions extends MongoClientOptions {
    * Similar to `parentState`, an opaque handle returned from `createShareStateServer()`
    * may be used to share state from another `DevtoolsConnectionState` instance, possibly
    * residing in another process. This handle should generally be considered a secret.
+   *
+   * In this case, the application needs to ensure that the lifetime of the top-level state
+   * extends beyond the lifetime(s) of the respective dependent state instance(s).
    */
   parentHandle?: string;
 }
