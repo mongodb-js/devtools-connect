@@ -131,8 +131,8 @@ export abstract class RpcServer {
 
 // Client corresponding to RpcServer instances.
 export class RpcClient {
-  private hmacKey: Buffer
-  private serverAddress: string
+  private hmacKey: Buffer;
+  private serverAddress: string;
 
   constructor(handle: string) {
     const [hmacKeyBase64, serverAddr] = JSON.parse(handle);
