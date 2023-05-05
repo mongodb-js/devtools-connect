@@ -13,6 +13,7 @@ import type { MongoDBOIDCPlugin, MongoDBOIDCPluginOptions } from '@mongodb-js/oi
 import { createMongoDBOIDCPlugin } from '@mongodb-js/oidc-plugin';
 import merge from 'lodash.merge';
 import { oidcServerRequestHandler } from './oidc/handler';
+import { StateShareClient, StateShareServer } from './ipc-rpc-state-share';
 
 export class MongoAutoencryptionUnavailable extends Error {
   constructor() {
@@ -172,19 +173,42 @@ function detectAndLogMissingOptionalDependencies(logger: ConnectLogEmitter) {
 
 // Wrapper for all state that a devtools application may want to share
 // between MongoClient instances. Currently, this is only the OIDC state.
-// TODO(MONGOSH-1386): We'll likely want to add code to this to enable
-// sharing the connection state over an external channel (e.g. local socket).
-// This would include implementing RPC-like access to the OIDC plugin,
-// including the MongoClient callbacks and events emitted from `.logger`.
-class DevtoolsConnectionState {
-  oidcPlugin: MongoDBOIDCPlugin;
+// There are two ways of sharing this state:
+// - When re-used within the same process/address space, it can be passed
+//   to `connectMongoClient()` as `parentState` directly.
+// - When re-used across processes, an RPC server can be used over an IPC
+//   channel by calling `.getStateShareServer()`, which returns a string
+//   that can then be passed to `connectMongoClient()` as `parentHandle`
+//   and which should be considered secret since it contains auth information
+//   for that RPC server.
+export class DevtoolsConnectionState {
+  public oidcPlugin: MongoDBOIDCPlugin;
+  public productName: string;
 
-  constructor(options: Pick<DevtoolsConnectOptions, 'productDocsLink' | 'productName' | 'oidc'>, logger: ConnectLogEmitter) {
-    this.oidcPlugin = createMongoDBOIDCPlugin({
-      ...options.oidc,
-      logger,
-      redirectServerRequestHandler: oidcServerRequestHandler.bind(null, options)
-    });
+  private stateShareClient: StateShareClient | null = null;
+  private stateShareServer: StateShareServer | null = null;
+
+  constructor(options: Pick<DevtoolsConnectOptions, 'productDocsLink' | 'productName' | 'oidc' | 'parentHandle'>, logger: ConnectLogEmitter) {
+    this.productName = options.productName;
+    if (options.parentHandle) {
+      this.stateShareClient = new StateShareClient(options.parentHandle);
+      this.oidcPlugin = this.stateShareClient.oidcPlugin;
+    } else {
+      this.oidcPlugin = createMongoDBOIDCPlugin({
+        ...options.oidc,
+        logger,
+        redirectServerRequestHandler: oidcServerRequestHandler.bind(null, options)
+      });
+    }
+  }
+
+  async getStateShareServer(): Promise<string> {
+    this.stateShareServer ??= await StateShareServer.create(this);
+    return this.stateShareServer.handle;
+  }
+
+  async destroy(): Promise<void> {
+    await this.stateShareServer?.close();
   }
 }
 
@@ -211,6 +235,15 @@ export interface DevtoolsConnectOptions extends MongoClientOptions {
    * `connectMongoClient()` call.
    */
   parentState?: DevtoolsConnectionState;
+  /**
+   * Similar to `parentState`, an opaque handle returned from `createShareStateServer()`
+   * may be used to share state from another `DevtoolsConnectionState` instance, possibly
+   * residing in another process. This handle should generally be considered a secret.
+   *
+   * In this case, the application needs to ensure that the lifetime of the top-level state
+   * extends beyond the lifetime(s) of the respective dependent state instance(s).
+   */
+  parentHandle?: string;
 }
 
 /**
@@ -250,6 +283,7 @@ export async function connectMongoClient(
   delete mongoClientOptions.productName;
   delete mongoClientOptions.oidc;
   delete mongoClientOptions.parentState;
+  delete mongoClientOptions.parentHandle;
 
   if (mongoClientOptions.autoEncryption !== undefined &&
     !mongoClientOptions.autoEncryption.bypassAutoEncryption &&

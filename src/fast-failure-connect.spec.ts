@@ -27,7 +27,7 @@ describe('isFastFailureConnectionError', function() {
     expect(isFastFailureConnectionError(new MongoNetworkError('ENETUNREACH'))).to.equal(true);
   });
 
-  it('returns true when an API version is reuqired', function() {
+  it('returns true when an API version is required', function() {
     expect(isFastFailureConnectionError(new MongoError('The apiVersion parameter is required'))).to.equal(true);
   });
 
