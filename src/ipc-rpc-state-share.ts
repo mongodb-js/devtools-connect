@@ -90,7 +90,7 @@ export abstract class RpcServer {
 
     // In practice, mongosh and Compass may not always know when a connection
     // state fully closes, so we're adding a process 'exit' listener that cleans
-    // up the file if it hasn't bee closed so far.
+    // up the file if it hasn't been closed so far.
     this.cleanupCallback = () => {
       if (process.platform !== 'win32') {
         try {
