@@ -129,7 +129,7 @@ export abstract class RpcServer {
   protected abstract handleRpc(content: Record<string, unknown>): Promise<Record<string, unknown>>;
 }
 
-// Client correspondong to RpcServer instances.
+// Client corresponding to RpcServer instances.
 export class RpcClient {
   private hmacKey: Buffer
   private serverAddress: string
