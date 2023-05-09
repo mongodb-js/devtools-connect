@@ -1,4 +1,5 @@
 import { connectMongoClient, DevtoolsConnectOptions } from '../';
+import { oidcHasProviderFlow } from '../lib/connect';
 import { EventEmitter } from 'events';
 import { MongoClient } from 'mongodb';
 import sinon, { stubConstructor } from 'ts-sinon';
@@ -294,6 +295,24 @@ describe('devtools connect', () => {
       const { client } = await connectMongoClient(process.env.MONGODB_URI ?? '', defaultOpts, bus, MongoClient);
       expect((await client.db('admin').command({ ping: 1 })).ok).to.equal(1);
       await client.close();
+    });
+  });
+
+  describe('oidcHasProviderFlow', function() {
+    it('returns false by default', function() {
+      expect(oidcHasProviderFlow('mongodb://example/', {})).to.equal(false);
+    });
+
+    it('returns true if the PROVIDER_NAME JS option is set', function() {
+      expect(oidcHasProviderFlow('mongodb://example/', {
+        authMechanismProperties: {
+          PROVIDER_NAME: 'aws'
+        }
+      })).to.equal(true);
+    });
+
+    it('returns true if the PROVIDER_NAME url option is set', function() {
+      expect(oidcHasProviderFlow('mongodb://example/?authMechanismProperties=PROVIDER_NAME:aws', {})).to.equal(true);
     });
   });
 });

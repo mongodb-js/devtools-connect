@@ -14,6 +14,7 @@ import { createMongoDBOIDCPlugin } from '@mongodb-js/oidc-plugin';
 import merge from 'lodash.merge';
 import { oidcServerRequestHandler } from './oidc/handler';
 import { StateShareClient, StateShareServer } from './ipc-rpc-state-share';
+import ConnectionString, { CommaAndColonSeparatedRecord } from 'mongodb-connection-string-url';
 
 export class MongoAutoencryptionUnavailable extends Error {
   constructor() {
@@ -275,9 +276,13 @@ export async function connectMongoClient(
 
   // TODO(MONGOSH-1402): Enable OIDC by default, remove flag
   const oidcFeatureFlag = !!process.env.ENABLE_DEVTOOLS_OIDC;
+  // If PROVIDER_NAME was specified to the MongoClient options, adding callbacks would conflict
+  // with that; we should omit them so that e.g. mongosh users can leverage the non-human OIDC
+  // auth flows by specifying PROVIDER_NAME.
+  const shouldAddOidcCallbacks = !oidcHasProviderFlow(uri, clientOptions);
   const state = clientOptions.parentState ?? new DevtoolsConnectionState(clientOptions, logger);
   const mongoClientOptions: MongoClientOptions & Partial<DevtoolsConnectOptions> =
-    merge({}, clientOptions, oidcFeatureFlag ? state.oidcPlugin.mongoClientOptions : {});
+    merge({}, clientOptions, oidcFeatureFlag && shouldAddOidcCallbacks ? state.oidcPlugin.mongoClientOptions : {});
   delete mongoClientOptions.useSystemCA;
   delete mongoClientOptions.productDocsLink;
   delete mongoClientOptions.productName;
@@ -313,4 +318,20 @@ export async function connectMongoClient(
     (client.autoEncrypter as any)[Symbol.for('@@mdb.decorateDecryptionResult')] = true;
   }
   return { client, state };
+}
+
+export function oidcHasProviderFlow(uri: string, clientOptions: MongoClientOptions): boolean {
+  if (clientOptions.authMechanismProperties?.PROVIDER_NAME) {
+    return true;
+  }
+  let cs: ConnectionString;
+  try {
+    cs = new ConnectionString(uri, { looseValidation: true });
+  } catch {
+    return false;
+  }
+
+  return !!new CommaAndColonSeparatedRecord(
+      cs.typedSearchParams<MongoClientOptions>().get('authMechanismProperties')
+    ).get('PROVIDER_NAME');
 }
