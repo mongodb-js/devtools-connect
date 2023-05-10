@@ -76,9 +76,11 @@ export interface ConnectEventMap extends MongoDBOIDCLogEventsMap {
   'devtools-connect:used-system-ca': (ev: ConnectUsedSystemCAEvent) => void;
 }
 
+export type ConnectEventArgs<K extends keyof ConnectEventMap> = ConnectEventMap[K] extends (...args: infer P) => any ? P : never;
+
 export interface ConnectLogEmitter {
   // TypeScript uses something like this itself for its EventTarget definitions.
   on<K extends keyof ConnectEventMap>(event: K, listener: ConnectEventMap[K]): this;
   once<K extends keyof ConnectEventMap>(event: K, listener: ConnectEventMap[K]): this;
-  emit<K extends keyof ConnectEventMap>(event: K, ...args: ConnectEventMap[K] extends (...args: infer P) => any ? P : never): unknown;
+  emit<K extends keyof ConnectEventMap>(event: K, ...args: ConnectEventArgs<K>): unknown;
 }
