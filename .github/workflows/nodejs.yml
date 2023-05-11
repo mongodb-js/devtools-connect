@@ -3,8 +3,8 @@ on: [push, pull_request]
 name: CI
 
 jobs:
-  test:
-    name: Test
+  test_full:
+    name: Test (Linux)
     strategy:
       fail-fast: false
       matrix:
@@ -28,3 +28,21 @@ jobs:
         run: npm test
         env:
           MONGODB_URI: mongodb://localhost/
+  test:
+    name: Test (macOS, Windows)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+        node-version: [16.x, 18.x, 20.x]
+    runs-on: ${{matrix.os}}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install Dependencies
+        run: npm install
+      - name: Test
+        run: npm test
