@@ -256,7 +256,8 @@ describe('devtools connect', () => {
       expect.fail('Failed to throw expected error');
     });
 
-    it('connects once when using the system CA has been requested', async() => {
+    it('connects once when using the system CA has been requested', async function() {
+      this.timeout(30_000); // useSystemCA is slow on Windows
       const uri = 'localhost:27017';
       const mClient = stubConstructor(FakeMongoClient);
       const mClientType = sinon.stub().returns(mClient);
