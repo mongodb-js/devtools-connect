@@ -53,8 +53,5 @@ jobs:
           bash node-gyp-bug-workaround.sh
       - name: Install Dependencies
         run: npm install
-      - name: Debug...
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: npm install win-export-certificate-and-key
       - name: Test
         run: npm test
