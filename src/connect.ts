@@ -273,11 +273,9 @@ export async function connectMongoClient(
     };
   }
 
-  // TODO(MONGOSH-1402): Enable OIDC by default, remove flag
-  const oidcFeatureFlag = !!process.env.ENABLE_DEVTOOLS_OIDC;
   const state = clientOptions.parentState ?? new DevtoolsConnectionState(clientOptions, logger);
   const mongoClientOptions: MongoClientOptions & Partial<DevtoolsConnectOptions> =
-    merge({}, clientOptions, oidcFeatureFlag ? state.oidcPlugin.mongoClientOptions : {});
+    merge({}, clientOptions, state.oidcPlugin.mongoClientOptions);
   delete mongoClientOptions.useSystemCA;
   delete mongoClientOptions.productDocsLink;
   delete mongoClientOptions.productName;
