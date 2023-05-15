@@ -287,7 +287,7 @@ export async function connectMongoClient(
   // If PROVIDER_NAME was specified to the MongoClient options, adding callbacks would conflict
   // with that; we should omit them so that e.g. mongosh users can leverage the non-human OIDC
   // auth flows by specifying PROVIDER_NAME.
-  const shouldAddOidcCallbacks = !oidcHasProviderFlow(uri, clientOptions);
+  const shouldAddOidcCallbacks = isHumanOidcFlow(uri, clientOptions);
   const state = clientOptions.parentState ?? new DevtoolsConnectionState(clientOptions, logger);
   const mongoClientOptions: MongoClientOptions & Partial<DevtoolsConnectOptions> =
     merge({}, clientOptions, shouldAddOidcCallbacks ? state.oidcPlugin.mongoClientOptions : {});
@@ -328,18 +328,22 @@ export async function connectMongoClient(
   return { client, state };
 }
 
-export function oidcHasProviderFlow(uri: string, clientOptions: MongoClientOptions): boolean {
-  if (clientOptions.authMechanismProperties?.PROVIDER_NAME) {
-    return true;
+export function isHumanOidcFlow(uri: string, clientOptions: MongoClientOptions): boolean {
+  if (
+    clientOptions.authMechanism !== 'MONGODB-OIDC' ||
+    clientOptions.authMechanismProperties?.PROVIDER_NAME
+  ) {
+    return false;
   }
   let cs: ConnectionString;
   try {
     cs = new ConnectionString(uri, { looseValidation: true });
   } catch {
-    return false;
+    return true;
   }
 
-  return !!new CommaAndColonSeparatedRecord(
-    cs.typedSearchParams<MongoClientOptions>().get('authMechanismProperties')
+  const sp = cs.typedSearchParams<MongoClientOptions>();
+  return sp.get('authMechanism') === 'MONGODB-OIDC' && !new CommaAndColonSeparatedRecord(
+    sp.get('authMechanismProperties')
   ).get('PROVIDER_NAME');
 }
