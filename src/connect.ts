@@ -330,7 +330,7 @@ export async function connectMongoClient(
 
 export function isHumanOidcFlow(uri: string, clientOptions: MongoClientOptions): boolean {
   if (
-    clientOptions.authMechanism !== 'MONGODB-OIDC' ||
+    (clientOptions.authMechanism && clientOptions.authMechanism !== 'MONGODB-OIDC') ||
     clientOptions.authMechanismProperties?.PROVIDER_NAME
   ) {
     return false;
@@ -339,11 +339,12 @@ export function isHumanOidcFlow(uri: string, clientOptions: MongoClientOptions):
   try {
     cs = new ConnectionString(uri, { looseValidation: true });
   } catch {
-    return true;
+    return false;
   }
 
   const sp = cs.typedSearchParams<MongoClientOptions>();
-  return sp.get('authMechanism') === 'MONGODB-OIDC' && !new CommaAndColonSeparatedRecord(
+  const authMechanism = clientOptions.authMechanism ?? sp.get('authMechanism');
+  return authMechanism === 'MONGODB-OIDC' && !new CommaAndColonSeparatedRecord(
     sp.get('authMechanismProperties')
   ).get('PROVIDER_NAME');
 }
