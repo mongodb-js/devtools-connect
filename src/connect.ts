@@ -7,13 +7,15 @@ import type {
   ServerHeartbeatSucceededEvent,
   TopologyDescription
 } from 'mongodb';
-import type { ConnectDnsResolutionDetail } from './types';
+import type { ConnectDnsResolutionDetail, ConnectEventArgs, ConnectEventMap } from './types';
 import { systemCertsAsync, Options as SystemCAOptions } from 'system-ca';
 import type { MongoDBOIDCPlugin, MongoDBOIDCPluginOptions } from '@mongodb-js/oidc-plugin';
 import { createMongoDBOIDCPlugin } from '@mongodb-js/oidc-plugin';
 import merge from 'lodash.merge';
 import { oidcServerRequestHandler } from './oidc/handler';
 import { StateShareClient, StateShareServer } from './ipc-rpc-state-share';
+import ConnectionString, { CommaAndColonSeparatedRecord } from 'mongodb-connection-string-url';
+import EventEmitter from 'events';
 
 export class MongoAutoencryptionUnavailable extends Error {
   constructor() {
@@ -194,9 +196,18 @@ export class DevtoolsConnectionState {
       this.stateShareClient = new StateShareClient(options.parentHandle);
       this.oidcPlugin = this.stateShareClient.oidcPlugin;
     } else {
+      // Create a separate logger instance for the plugin and "copy" events over
+      // to the main logger instance, so that when we attach listeners to the plugins,
+      // they are only triggered for events from that specific plugin instance
+      // (and not other OIDCPlugin instances that might be running on the same logger).
+      const proxyingLogger = new EventEmitter();
+      proxyingLogger.emit = <K extends keyof ConnectEventMap>(event: K, ...args: ConnectEventArgs<K>) => {
+        logger.emit(event, ...args);
+        return EventEmitter.prototype.emit.call(this, event, ...args);
+      };
       this.oidcPlugin = createMongoDBOIDCPlugin({
         ...options.oidc,
-        logger,
+        logger: proxyingLogger,
         redirectServerRequestHandler: oidcServerRequestHandler.bind(null, options)
       });
     }
@@ -273,9 +284,13 @@ export async function connectMongoClient(
     };
   }
 
+  // If PROVIDER_NAME was specified to the MongoClient options, adding callbacks would conflict
+  // with that; we should omit them so that e.g. mongosh users can leverage the non-human OIDC
+  // auth flows by specifying PROVIDER_NAME.
+  const shouldAddOidcCallbacks = !oidcHasProviderFlow(uri, clientOptions);
   const state = clientOptions.parentState ?? new DevtoolsConnectionState(clientOptions, logger);
   const mongoClientOptions: MongoClientOptions & Partial<DevtoolsConnectOptions> =
-    merge({}, clientOptions, state.oidcPlugin.mongoClientOptions);
+    merge({}, clientOptions, shouldAddOidcCallbacks ? state.oidcPlugin.mongoClientOptions : {});
   delete mongoClientOptions.useSystemCA;
   delete mongoClientOptions.productDocsLink;
   delete mongoClientOptions.productName;
@@ -311,4 +326,20 @@ export async function connectMongoClient(
     (client.autoEncrypter as any)[Symbol.for('@@mdb.decorateDecryptionResult')] = true;
   }
   return { client, state };
+}
+
+export function oidcHasProviderFlow(uri: string, clientOptions: MongoClientOptions): boolean {
+  if (clientOptions.authMechanismProperties?.PROVIDER_NAME) {
+    return true;
+  }
+  let cs: ConnectionString;
+  try {
+    cs = new ConnectionString(uri, { looseValidation: true });
+  } catch {
+    return false;
+  }
+
+  return !!new CommaAndColonSeparatedRecord(
+    cs.typedSearchParams<MongoClientOptions>().get('authMechanismProperties')
+  ).get('PROVIDER_NAME');
 }
