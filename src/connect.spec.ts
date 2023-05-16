@@ -1,5 +1,5 @@
 import { connectMongoClient, DevtoolsConnectOptions } from '../';
-import { oidcHasProviderFlow } from '../lib/connect';
+import { isHumanOidcFlow } from '../lib/connect';
 import { EventEmitter } from 'events';
 import { MongoClient } from 'mongodb';
 import sinon, { stubConstructor } from 'ts-sinon';
@@ -299,21 +299,26 @@ describe('devtools connect', () => {
     });
   });
 
-  describe('oidcHasProviderFlow', function() {
+  describe('isHumanOidcFlow', function() {
     it('returns false by default', function() {
-      expect(oidcHasProviderFlow('mongodb://example/', {})).to.equal(false);
+      expect(isHumanOidcFlow('mongodb://example/', {})).to.equal(false);
     });
 
-    it('returns true if the PROVIDER_NAME JS option is set', function() {
-      expect(oidcHasProviderFlow('mongodb://example/', {
+    it('returns true if the authMechanism is MONGODB-OIDC', function() {
+      expect(isHumanOidcFlow('mongodb://example/?authMechanism=MONGODB-OIDC', {})).to.equal(true);
+    });
+
+    it('returns false if the PROVIDER_NAME JS option is set', function() {
+      expect(isHumanOidcFlow('mongodb://example/?authMechanism=MONGODB-OIDC', {
         authMechanismProperties: {
           PROVIDER_NAME: 'aws'
         }
-      })).to.equal(true);
+      })).to.equal(false);
     });
 
-    it('returns true if the PROVIDER_NAME url option is set', function() {
-      expect(oidcHasProviderFlow('mongodb://example/?authMechanismProperties=PROVIDER_NAME:aws', {})).to.equal(true);
+    it('returns false if the PROVIDER_NAME url option is set', function() {
+      expect(isHumanOidcFlow(
+        'mongodb://example/?authMechanism=MONGODB-OIDC&authMechanismProperties=PROVIDER_NAME:aws', {})).to.equal(false);
     });
   });
 });

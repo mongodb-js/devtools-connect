@@ -284,15 +284,13 @@ export async function connectMongoClient(
     };
   }
 
-  // TODO(MONGOSH-1402): Enable OIDC by default, remove flag
-  const oidcFeatureFlag = !!process.env.ENABLE_DEVTOOLS_OIDC;
   // If PROVIDER_NAME was specified to the MongoClient options, adding callbacks would conflict
   // with that; we should omit them so that e.g. mongosh users can leverage the non-human OIDC
   // auth flows by specifying PROVIDER_NAME.
-  const shouldAddOidcCallbacks = !oidcHasProviderFlow(uri, clientOptions);
+  const shouldAddOidcCallbacks = isHumanOidcFlow(uri, clientOptions);
   const state = clientOptions.parentState ?? new DevtoolsConnectionState(clientOptions, logger);
   const mongoClientOptions: MongoClientOptions & Partial<DevtoolsConnectOptions> =
-    merge({}, clientOptions, oidcFeatureFlag && shouldAddOidcCallbacks ? state.oidcPlugin.mongoClientOptions : {});
+    merge({}, clientOptions, shouldAddOidcCallbacks ? state.oidcPlugin.mongoClientOptions : {});
   delete mongoClientOptions.useSystemCA;
   delete mongoClientOptions.productDocsLink;
   delete mongoClientOptions.productName;
@@ -330,9 +328,12 @@ export async function connectMongoClient(
   return { client, state };
 }
 
-export function oidcHasProviderFlow(uri: string, clientOptions: MongoClientOptions): boolean {
-  if (clientOptions.authMechanismProperties?.PROVIDER_NAME) {
-    return true;
+export function isHumanOidcFlow(uri: string, clientOptions: MongoClientOptions): boolean {
+  if (
+    (clientOptions.authMechanism && clientOptions.authMechanism !== 'MONGODB-OIDC') ||
+    clientOptions.authMechanismProperties?.PROVIDER_NAME
+  ) {
+    return false;
   }
   let cs: ConnectionString;
   try {
@@ -341,7 +342,9 @@ export function oidcHasProviderFlow(uri: string, clientOptions: MongoClientOptio
     return false;
   }
 
-  return !!new CommaAndColonSeparatedRecord(
-    cs.typedSearchParams<MongoClientOptions>().get('authMechanismProperties')
+  const sp = cs.typedSearchParams<MongoClientOptions>();
+  const authMechanism = clientOptions.authMechanism ?? sp.get('authMechanism');
+  return authMechanism === 'MONGODB-OIDC' && !new CommaAndColonSeparatedRecord(
+    sp.get('authMechanismProperties')
   ).get('PROVIDER_NAME');
 }
