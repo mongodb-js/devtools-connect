@@ -201,7 +201,7 @@ export class DevtoolsConnectionState {
       // they are only triggered for events from that specific plugin instance
       // (and not other OIDCPlugin instances that might be running on the same logger).
       const proxyingLogger = new EventEmitter();
-      proxyingLogger.emit = <K extends keyof ConnectEventMap>(event: K, ...args: ConnectEventArgs<K>) => {
+      proxyingLogger.emit = function<K extends keyof ConnectEventMap>(event: K, ...args: ConnectEventArgs<K>) {
         logger.emit(event, ...args);
         return EventEmitter.prototype.emit.call(this, event, ...args);
       };
