@@ -220,6 +220,7 @@ export class DevtoolsConnectionState {
 
   async destroy(): Promise<void> {
     await this.stateShareServer?.close();
+    await this.oidcPlugin?.destroy();
   }
 }
 

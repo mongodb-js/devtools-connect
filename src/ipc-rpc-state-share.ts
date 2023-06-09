@@ -218,6 +218,7 @@ export class StateShareClient extends RpcClient {
     super(handle);
 
     this.oidcPlugin = {
+      destroy() { return Promise.resolve(); },
       serialize() {
         throw new Error('serialize() not supported in devtools-connect state-share clients');
       },
