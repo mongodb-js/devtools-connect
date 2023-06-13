@@ -79,7 +79,7 @@ async function connectWithFailFast(uri: string, client: MongoClient, logger: Con
       await failEarlyClosePromise;
       throw failedConnections.values().next().value; // Just use the first failure.
     } else if (isAtlas(uri)) {
-      (err as Error).message =  'It looks like this is a MongoDB Atlas cluster. Please ensure that your IP whitelist allows connections from your network.';
+      (err as Error).message = 'It looks like this is a MongoDB Atlas cluster. Please ensure that your IP whitelist allows connections from your network.';
     }
     throw err;
   } finally {
