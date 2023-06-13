@@ -299,6 +299,19 @@ describe('devtools connect', () => {
     });
   });
 
+  describe('atlas', () => {
+    it('shows the whitelist issue message when errors to connect to Atlas', async() => {
+      const uri = 'mongodb://compass-data-sets-shard-00-00.e06dc.mongodb.net/?connectTimeoutMS=1&serverSelectionTimeoutMS=1';
+      const bus = new EventEmitter();
+      try {
+        await connectMongoClient(uri, defaultOpts, bus, MongoClient);
+      } catch (e: any) {
+        return expect(e.message.toLowerCase()).to.include('it looks like this is a mongodb atlas cluster');
+      }
+      expect.fail('Failed to throw expected error');
+    });
+  });
+
   describe('isHumanOidcFlow', function() {
     it('returns false by default', function() {
       expect(isHumanOidcFlow('mongodb://example/', {})).to.equal(false);

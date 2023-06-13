@@ -17,6 +17,8 @@ import { StateShareClient, StateShareServer } from './ipc-rpc-state-share';
 import ConnectionString, { CommaAndColonSeparatedRecord } from 'mongodb-connection-string-url';
 import EventEmitter from 'events';
 
+const isAtlas = (str: string) => str.match(/mongodb.net[:/]/i);
+
 export class MongoAutoencryptionUnavailable extends Error {
   constructor() {
     super('Automatic encryption is only available with Atlas and MongoDB Enterprise');
@@ -76,6 +78,8 @@ async function connectWithFailFast(uri: string, client: MongoClient, logger: Con
     if (failEarlyClosePromise !== null) {
       await failEarlyClosePromise;
       throw failedConnections.values().next().value; // Just use the first failure.
+    } else if (isAtlas(uri)) {
+      (err as Error).message =  'It looks like this is a MongoDB Atlas cluster. Please ensure that your IP whitelist allows connections from your network.';
     }
     throw err;
   } finally {
