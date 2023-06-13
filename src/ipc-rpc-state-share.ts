@@ -109,7 +109,7 @@ export abstract class RpcServer {
 
       response = { status: 200, ...await this.handleRpc(content) };
     } catch (err) {
-      response = { status: 500, error: err && typeof err === 'object' && 'message' in err ? (err as Error).message : String(err) };
+      response = { status: 500, error: err && typeof err === 'object' && 'message' in err ? err.message : String(err) };
     }
     res.statusCode = response.status;
     const payload = new TextEncoder().encode(JSON.stringify(response));

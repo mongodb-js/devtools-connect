@@ -300,7 +300,7 @@ describe('devtools connect', () => {
   });
 
   describe('atlas', () => {
-    it('shows the whitelist issue message when errors to connect to Atlas', async() => {
+    it('shows the ensure that your network access list allows connections from your ip error', async() => {
       const uri = 'mongodb://compass-data-sets-shard-00-00.e06dc.mongodb.net/?connectTimeoutMS=1&serverSelectionTimeoutMS=1';
       const bus = new EventEmitter();
       try {

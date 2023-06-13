@@ -17,7 +17,12 @@ import { StateShareClient, StateShareServer } from './ipc-rpc-state-share';
 import ConnectionString, { CommaAndColonSeparatedRecord } from 'mongodb-connection-string-url';
 import EventEmitter from 'events';
 
-const isAtlas = (str: string) => str.match(/mongodb.net[:/]/i);
+function isAtlas(str: string): boolean {
+  try {
+    const { hosts } = new ConnectionString(str);
+    return hosts.every(host => /(^|\.)mongodb.net(:|$)/.test(host));
+  } catch { return false; }
+}
 
 export class MongoAutoencryptionUnavailable extends Error {
   constructor() {
@@ -74,12 +79,13 @@ async function connectWithFailFast(uri: string, client: MongoClient, logger: Con
   client.addListener('serverHeartbeatSucceeded', heartbeatSucceededListener);
   try {
     await client.connect();
-  } catch (err: unknown) {
+  } catch (err: any) {
     if (failEarlyClosePromise !== null) {
       await failEarlyClosePromise;
       throw failedConnections.values().next().value; // Just use the first failure.
-    } else if (isAtlas(uri)) {
-      (err as Error).message = 'It looks like this is a MongoDB Atlas cluster. Please ensure that your IP whitelist allows connections from your network.';
+    }
+    if (err.constructor?.name === 'MongoServerSelectionError' && isAtlas(uri)) {
+      err.message = `${err.message} It looks like this is a MongoDB Atlas cluster. Please ensure that your Network Access List allows connections from your IP.`;
     }
     throw err;
   } finally {
