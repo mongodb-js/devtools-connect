@@ -79,13 +79,13 @@ async function connectWithFailFast(uri: string, client: MongoClient, logger: Con
   client.addListener('serverHeartbeatSucceeded', heartbeatSucceededListener);
   try {
     await client.connect();
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (failEarlyClosePromise !== null) {
       await failEarlyClosePromise;
       throw failedConnections.values().next().value; // Just use the first failure.
     }
-    if (err.constructor?.name === 'MongoServerSelectionError' && isAtlas(uri)) {
-      err.message = `${err.message} It looks like this is a MongoDB Atlas cluster. Please ensure that your Network Access List allows connections from your IP.`;
+    if ((err as any)?.constructor?.name === 'MongoServerSelectionError' && isAtlas(uri)) {
+      (err as Error).message = `${(err as Error).message}. It looks like this is a MongoDB Atlas cluster. Please ensure that your Network Access List allows connections from your IP.`;
     }
     throw err;
   } finally {
