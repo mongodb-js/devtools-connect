@@ -79,13 +79,17 @@ async function connectWithFailFast(uri: string, client: MongoClient, logger: Con
   client.addListener('serverHeartbeatSucceeded', heartbeatSucceededListener);
   try {
     await client.connect();
-  } catch (err: unknown) {
-    let connectErr = err;
+  } catch (error: unknown) {
+    let connectErr = error;
     if (failEarlyClosePromise !== null) {
       await failEarlyClosePromise;
       connectErr = failedConnections.values().next().value; // Just use the first failure.
     }
-    if ((connectErr as any)?.constructor?.name === 'MongoServerSelectionError' && isAtlas(uri)) {
+    if (
+      typeof connectErr === 'object' &&
+      connectErr?.constructor.name === 'MongoServerSelectionError' &&
+      isAtlas(uri)
+    ) {
       (connectErr as Error).message = `${(connectErr as Error).message}. It looks like this is a MongoDB Atlas cluster. Please ensure that your Network Access List allows connections from your IP.`;
     }
     throw connectErr;

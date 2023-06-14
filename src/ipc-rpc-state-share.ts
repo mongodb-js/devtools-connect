@@ -108,7 +108,7 @@ export abstract class RpcServer {
         req.headers['x-signature'], this.hmacKey));
 
       response = { status: 200, ...await this.handleRpc(content) };
-    } catch (err) {
+    } catch (err: unknown) {
       response = { status: 500, error: err && typeof err === 'object' && 'message' in err ? err.message : String(err) };
     }
     res.statusCode = response.status;
