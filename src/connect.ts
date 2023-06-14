@@ -17,6 +17,13 @@ import { StateShareClient, StateShareServer } from './ipc-rpc-state-share';
 import ConnectionString, { CommaAndColonSeparatedRecord } from 'mongodb-connection-string-url';
 import EventEmitter from 'events';
 
+function isAtlas(str: string): boolean {
+  try {
+    const { hosts } = new ConnectionString(str);
+    return hosts.every(host => /(^|\.)mongodb.net(:|$)/.test(host));
+  } catch { return false; }
+}
+
 export class MongoAutoencryptionUnavailable extends Error {
   constructor() {
     super('Automatic encryption is only available with Atlas and MongoDB Enterprise');
@@ -72,12 +79,20 @@ async function connectWithFailFast(uri: string, client: MongoClient, logger: Con
   client.addListener('serverHeartbeatSucceeded', heartbeatSucceededListener);
   try {
     await client.connect();
-  } catch (err: unknown) {
+  } catch (error: unknown) {
+    let connectErr = error;
     if (failEarlyClosePromise !== null) {
       await failEarlyClosePromise;
-      throw failedConnections.values().next().value; // Just use the first failure.
+      connectErr = failedConnections.values().next().value; // Just use the first failure.
     }
-    throw err;
+    if (
+      typeof connectErr === 'object' &&
+      connectErr?.constructor.name === 'MongoServerSelectionError' &&
+      isAtlas(uri)
+    ) {
+      (connectErr as Error).message = `${(connectErr as Error).message}. It looks like this is a MongoDB Atlas cluster. Please ensure that your Network Access List allows connections from your IP.`;
+    }
+    throw connectErr;
   } finally {
     client.removeListener('serverHeartbeatFailed', heartbeatFailureListener);
     client.removeListener('serverHeartbeatSucceeded', heartbeatSucceededListener);
