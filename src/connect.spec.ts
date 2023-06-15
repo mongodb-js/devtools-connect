@@ -295,7 +295,11 @@ describe('devtools connect', () => {
       const bus = new EventEmitter();
       const { client } = await connectMongoClient(process.env.MONGODB_URI ?? '', defaultOpts, bus, MongoClient);
       expect((await client.db('admin').command({ ping: 1 })).ok).to.equal(1);
+
+      const onCloseStub = sinon.stub();
+      client.on('close', onCloseStub);
       await client.close();
+      expect(onCloseStub.getCalls()).to.have.lengthOf(1);
     });
   });
 

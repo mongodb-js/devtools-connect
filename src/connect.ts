@@ -201,6 +201,7 @@ export class DevtoolsConnectionState {
       // they are only triggered for events from that specific plugin instance
       // (and not other OIDCPlugin instances that might be running on the same logger).
       const proxyingLogger = new EventEmitter();
+      proxyingLogger.setMaxListeners(Infinity);
       proxyingLogger.emit = function<K extends keyof ConnectEventMap>(event: K, ...args: ConnectEventArgs<K>) {
         logger.emit(event, ...args);
         return EventEmitter.prototype.emit.call(this, event, ...args);
@@ -307,7 +308,7 @@ export async function connectMongoClient(
     delete optionsWithoutFLE.autoEncryption;
     delete optionsWithoutFLE.serverApi;
     const client = new MongoClientClass(uri, optionsWithoutFLE);
-    state.oidcPlugin.logger.on('mongodb-oidc-plugin:auth-failed', () => client.close());
+    closeMongoClientWhenAuthFails(state, client);
     await connectWithFailFast(uri, client, logger);
     const buildInfo = await client.db('admin').admin().command({ buildInfo: 1 });
     await client.close();
@@ -320,7 +321,7 @@ export async function connectMongoClient(
   }
   uri = await resolveMongodbSrv(uri, logger);
   const client = new MongoClientClass(uri, mongoClientOptions);
-  state.oidcPlugin.logger.on('mongodb-oidc-plugin:auth-failed', () => client.close());
+  closeMongoClientWhenAuthFails(state, client);
   await connectWithFailFast(uri, client, logger);
   if (client.autoEncrypter) {
     // Enable Devtools-specific CSFLE result decoration.
@@ -348,4 +349,31 @@ export function isHumanOidcFlow(uri: string, clientOptions: MongoClientOptions):
   return authMechanism === 'MONGODB-OIDC' && !new CommaAndColonSeparatedRecord(
     sp.get('authMechanismProperties')
   ).get('PROVIDER_NAME');
+}
+
+function closeMongoClientWhenAuthFails(
+  state: DevtoolsConnectionState,
+  client: MongoClient
+): void {
+  // First, make sure that the 'close' event is emitted on the client,
+  // see also the comments in https://jira.mongodb.org/browse/NODE-5155.
+  const originalClose = client.close;
+  client.close = async function(...args) {
+    let closeEmitted = false;
+    const onClose = () => closeEmitted = true;
+    this.on('close', onClose);
+    const result = await originalClose.call(this, ...args);
+    this.off('close', onClose);
+    if (!closeEmitted) {
+      this.emit('close');
+    }
+    return result;
+  };
+
+  // Close the client when the OIDC plugin says that authentication failed
+  // (notably, this also happens when that failure comes from another
+  // client using the same `state` instance).
+  const onOIDCAuthFailed = () => client.close().catch(() => {});
+  state.oidcPlugin.logger.once('mongodb-oidc-plugin:auth-failed', onOIDCAuthFailed);
+  client.once('close', () => state.oidcPlugin.logger.off?.('mongodb-oidc-plugin:auth-failed', onOIDCAuthFailed));
 }

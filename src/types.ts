@@ -81,6 +81,7 @@ export type ConnectEventArgs<K extends keyof ConnectEventMap> = ConnectEventMap[
 export interface ConnectLogEmitter {
   // TypeScript uses something like this itself for its EventTarget definitions.
   on<K extends keyof ConnectEventMap>(event: K, listener: ConnectEventMap[K]): this;
+  off?<K extends keyof ConnectEventMap>(event: K, listener: ConnectEventMap[K]): this;
   once<K extends keyof ConnectEventMap>(event: K, listener: ConnectEventMap[K]): this;
   emit<K extends keyof ConnectEventMap>(event: K, ...args: ConnectEventArgs<K>): unknown;
 }
