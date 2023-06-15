@@ -231,9 +231,10 @@ describe('devtools connect', () => {
       const mClient = new FakeMongoClient();
       const mClientType = sinon.stub().returns(mClient);
       let rejectConnect: (err: Error) => void;
-      mClient.close = sinon.stub().callsFake(() => {
+      const closeSpy = sinon.stub().callsFake(() => {
         rejectConnect(new Error('discarded error'));
       });
+      mClient.close = closeSpy;
       mClient.connect = () => new Promise((resolve, reject) => {
         rejectConnect = reject;
         setImmediate(() => {
@@ -250,7 +251,7 @@ describe('devtools connect', () => {
       try {
         await connectMongoClient(uri, defaultOpts, bus, mClientType as any);
       } catch (e) {
-        expect((mClient.close as any).getCalls()).to.have.lengthOf(1);
+        expect((closeSpy as any).getCalls()).to.have.lengthOf(1);
         return expect(e).to.equal(err);
       }
       expect.fail('Failed to throw expected error');
