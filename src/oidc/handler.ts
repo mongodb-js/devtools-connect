@@ -9,6 +9,13 @@ export function oidcServerRequestHandler(
   const { productDocsLink, productName } = options;
   const { res, result, status } = info;
   res.statusCode = status;
+
+  if (result === 'redirecting') {
+    res.setHeader('Location', info.location);
+    res.end();
+    return;
+  }
+
   // This CSP is fairly restrictive. Since we are sending static pages only, the security
   // effects of this are limited, but this is also helpful for verifying that the generated
   // pages do not unintentionally rely on external resources (which they should never do).
