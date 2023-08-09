@@ -1,5 +1,5 @@
 import type { ConnectLogEmitter } from './index';
-import dns from 'node:dns';
+import dns from 'dns';
 import { isFastFailureConnectionError } from './fast-failure-connect';
 import type {
   MongoClient,
@@ -297,8 +297,10 @@ export async function connectMongoClient(
   const mongoClientOptions: MongoClientOptions & Partial<DevtoolsConnectOptions> =
     merge({}, clientOptions, shouldAddOidcCallbacks ? state.oidcPlugin.mongoClientOptions : {});
 
+  // Adopt dns result order changes with Node v18 that affected the VSCode extension VSCODE-458.
+  // Refs https://github.com/microsoft/vscode/issues/189805
   mongoClientOptions.lookup = (hostname, options, callback) => {
-    return dns.lookup(hostname, { ...options, verbatim: false }, callback);
+    return dns.lookup(hostname, { verbatim: false, ...options }, callback);
   };
 
   if (clientOptions.useSystemCA) {
