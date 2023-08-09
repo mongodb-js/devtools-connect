@@ -5,6 +5,7 @@ import { MongoClient } from 'mongodb';
 import sinon, { stubConstructor } from 'ts-sinon';
 import chai, { expect } from 'chai';
 import sinonChai from 'sinon-chai';
+
 chai.use(sinonChai);
 
 describe('devtools connect', () => {
@@ -40,7 +41,10 @@ describe('devtools connect', () => {
       mClient.connect.onFirstCall().resolves(mClient);
       const result = await connectMongoClient(uri, defaultOpts, bus, mClientType as any);
       expect(mClientType.getCalls()).to.have.lengthOf(1);
-      expect(mClientType.getCalls()[0].args).to.deep.equal([uri, {}]);
+      expect(mClientType.getCalls()[0].args).to.have.lengthOf(2);
+      expect(mClientType.getCalls()[0].args[0]).to.equal(uri);
+      expect(Object.keys(mClientType.getCalls()[0].args[1])).to.have.lengthOf(1);
+      expect(mClientType.getCalls()[0].args[1]).to.have.property('lookup');
       expect(mClient.connect.getCalls()).to.have.lengthOf(1);
       expect(result.client).to.equal(mClient);
     });
@@ -53,7 +57,11 @@ describe('devtools connect', () => {
       mClient.connect.onFirstCall().resolves(mClient);
       const result = await connectMongoClient(uri, { ...defaultOpts, ...opts }, bus, mClientType as any);
       expect(mClientType.getCalls()).to.have.lengthOf(1);
-      expect(mClientType.getCalls()[0].args).to.deep.equal([uri, opts]);
+      expect(mClientType.getCalls()[0].args).to.have.lengthOf(2);
+      expect(mClientType.getCalls()[0].args[0]).to.equal(uri);
+      expect(Object.keys(mClientType.getCalls()[0].args[1])).to.have.lengthOf(2);
+      expect(mClientType.getCalls()[0].args[1].autoEncryption).to.deep.equal(opts.autoEncryption);
+      expect(mClientType.getCalls()[0].args[1]).to.have.property('lookup');
       expect(mClient.connect.getCalls()).to.have.lengthOf(1);
       expect(result.client).to.equal(mClient);
     });
@@ -78,9 +86,10 @@ describe('devtools connect', () => {
       const result = await connectMongoClient(uri, opts, bus, mClientType as any);
       const calls = mClientType.getCalls();
       expect(calls.length).to.equal(2);
-      expect(calls[0].args).to.deep.equal([
-        uri, {}
-      ]);
+      expect(calls[0].args).to.have.lengthOf(2);
+      expect(calls[0].args[0]).to.equal(uri);
+      expect(Object.keys(calls[0].args[1])).to.have.lengthOf(1);
+      expect(calls[0].args[1]).to.have.property('lookup');
       expect(commandSpy).to.have.been.calledOnceWithExactly({ buildInfo: 1 });
       expect(result.client).to.equal(mClientSecond);
     });
@@ -143,7 +152,11 @@ describe('devtools connect', () => {
       mClient.connect.onFirstCall().resolves(mClient);
       const result = await connectMongoClient(uri, { ...defaultOpts, ...opts }, bus, mClientType as any);
       expect(mClientType.getCalls()).to.have.lengthOf(1);
-      expect(mClientType.getCalls()[0].args).to.deep.equal([uri, opts]);
+      expect(mClientType.getCalls()[0].args).to.have.lengthOf(2);
+      expect(mClientType.getCalls()[0].args[0]).to.equal(uri);
+      expect(Object.keys(mClientType.getCalls()[0].args[1])).to.have.lengthOf(2);
+      expect(mClientType.getCalls()[0].args[1].autoEncryption).to.deep.equal(opts.autoEncryption);
+      expect(mClientType.getCalls()[0].args[1]).to.have.property('lookup');
       expect(mClient.connect.getCalls()).to.have.lengthOf(1);
       expect(result.client).to.equal(mClient);
     });
@@ -168,9 +181,10 @@ describe('devtools connect', () => {
       const result = await connectMongoClient(uri, opts, bus, mClientType as any);
       const calls = mClientType.getCalls();
       expect(calls.length).to.equal(2);
-      expect(calls[0].args).to.deep.equal([
-        uri, {}
-      ]);
+      expect(mClientType.getCalls()[0].args).to.have.lengthOf(2);
+      expect(mClientType.getCalls()[0].args[0]).to.equal(uri);
+      expect(Object.keys(mClientType.getCalls()[0].args[1])).to.have.lengthOf(1);
+      expect(mClientType.getCalls()[0].args[1]).to.have.property('lookup');
       expect(commandSpy).to.have.been.calledOnceWithExactly({ buildInfo: 1 });
       expect(result.client).to.equal(mClientSecond);
     });
@@ -280,6 +294,7 @@ describe('devtools connect', () => {
       const result = await connectMongoClient(uri, { ...defaultOpts, useSystemCA: false }, bus, mClientType as any);
       expect(mClientType.getCalls()).to.have.lengthOf(1);
       expect(mClientType.getCalls()[0].args[1]).to.not.have.property('useSystemCA');
+      expect(mClientType.getCalls()[0].args[1]).to.have.property('lookup');
       expect(mClient.connect.getCalls()).to.have.lengthOf(1);
       expect(result.client).to.equal(mClient);
     });
