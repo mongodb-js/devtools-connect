@@ -1,4 +1,5 @@
 import type { ConnectLogEmitter } from './index';
+import dns from 'node:dns';
 import { isFastFailureConnectionError } from './fast-failure-connect';
 import type {
   MongoClient,
@@ -288,19 +289,6 @@ export async function connectMongoClient(
     state: DevtoolsConnectionState
   }> {
   detectAndLogMissingOptionalDependencies(logger);
-  if (clientOptions.useSystemCA) {
-    const systemCAOpts: SystemCAOptions = { includeNodeCertificates: true };
-    const ca = await systemCertsAsync(systemCAOpts);
-    logger.emit('devtools-connect:used-system-ca', {
-      caCount: ca.length,
-      asyncFallbackError: systemCAOpts.asyncFallbackError
-    });
-    clientOptions = {
-      ...clientOptions,
-      ca: ca.join('\n')
-    };
-  }
-
   // If PROVIDER_NAME was specified to the MongoClient options, adding callbacks would conflict
   // with that; we should omit them so that e.g. mongosh users can leverage the non-human OIDC
   // auth flows by specifying PROVIDER_NAME.
@@ -308,6 +296,21 @@ export async function connectMongoClient(
   const state = clientOptions.parentState ?? new DevtoolsConnectionState(clientOptions, logger);
   const mongoClientOptions: MongoClientOptions & Partial<DevtoolsConnectOptions> =
     merge({}, clientOptions, shouldAddOidcCallbacks ? state.oidcPlugin.mongoClientOptions : {});
+
+  mongoClientOptions.lookup = (hostname, options, callback) => {
+    return dns.lookup(hostname, { ...options, verbatim: false }, callback);
+  };
+
+  if (clientOptions.useSystemCA) {
+    const systemCAOpts: SystemCAOptions = { includeNodeCertificates: true };
+    const ca = await systemCertsAsync(systemCAOpts);
+    logger.emit('devtools-connect:used-system-ca', {
+      caCount: ca.length,
+      asyncFallbackError: systemCAOpts.asyncFallbackError
+    });
+    mongoClientOptions.ca = ca.join('\n');
+  }
+
   delete mongoClientOptions.useSystemCA;
   delete mongoClientOptions.productDocsLink;
   delete mongoClientOptions.productName;
