@@ -98,7 +98,7 @@ async function connectWithFailFast(uri: string, client: MongoClient, logger: Con
     client.removeListener('serverHeartbeatFailed', heartbeatFailureListener);
     client.removeListener('serverHeartbeatSucceeded', heartbeatSucceededListener);
     logger.emit('devtools-connect:connect-attempt-finished', {
-      cryptSharedLibVersionInfo: (client?.autoEncrypter as any /* NODE-4285 */)?.cryptSharedLibVersionInfo
+      cryptSharedLibVersionInfo: (client as any)?.autoEncrypter?.cryptSharedLibVersionInfo
     });
   }
 }
@@ -134,7 +134,7 @@ async function resolveMongodbSrv(uri: string, logger: ConnectLogEmitter): Promis
                 resolutionDetails.push({
                   query: 'SRV', hostname, error: args[0]?.message, wasNativelyLookedUp: wasNativelyLookedUp(args[1])
                 });
-                // eslint-disable-next-line node/no-callback-literal
+                // eslint-disable-next-line n/no-callback-literal
                 cb(...args);
               });
             },
@@ -143,7 +143,7 @@ async function resolveMongodbSrv(uri: string, logger: ConnectLogEmitter): Promis
                 resolutionDetails.push({
                   query: 'TXT', hostname, error: args[0]?.message, wasNativelyLookedUp: wasNativelyLookedUp(args[1])
                 });
-                // eslint-disable-next-line node/no-callback-literal
+                // eslint-disable-next-line n/no-callback-literal
                 cb(...args);
               });
             }
@@ -343,9 +343,9 @@ export async function connectMongoClient(
   const client = new MongoClientClass(uri, mongoClientOptions);
   closeMongoClientWhenAuthFails(state, client);
   await connectWithFailFast(uri, client, logger);
-  if (client.autoEncrypter) {
+  if ((client as any).autoEncrypter) {
     // Enable Devtools-specific CSFLE result decoration.
-    (client.autoEncrypter as any)[Symbol.for('@@mdb.decorateDecryptionResult')] = true;
+    ((client as any).autoEncrypter)[Symbol.for('@@mdb.decorateDecryptionResult')] = true;
   }
   return { client, state };
 }
