@@ -163,9 +163,9 @@ async function resolveMongodbSrv(uri: string, logger: ConnectLogEmitter): Promis
 function detectAndLogMissingOptionalDependencies(logger: ConnectLogEmitter) {
   // These need to be literal require('string') calls for bundling purposes.
   try {
-    require('saslprep');
+    require('socks');
   } catch (error: any) {
-    logger.emit('devtools-connect:missing-optional-dependency', { name: 'saslprep', error });
+    logger.emit('devtools-connect:missing-optional-dependency', { name: 'socks', error });
   }
   try {
     require('mongodb-client-encryption');
