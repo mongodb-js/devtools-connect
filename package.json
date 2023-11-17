@@ -36,7 +36,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "lodash.merge": "^4.6.2",
-    "mongodb-connection-string-url": "^2.6.0",
+    "mongodb-connection-string-url": "^3.0.0",
     "system-ca": "^1.0.2"
   },
   "peerDependencies": {
