@@ -18,6 +18,11 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
+      # Default Python (3.12) doesn't have support for distutils
+      # https://github.com/nodejs/node-gyp/issues/2869
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
       - name: Start MongoDB ${{ matrix.mongodb-version }}
         uses: supercharge/mongodb-github-action@1.8.0
         with:
@@ -42,6 +47,11 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
+      # Default Python (3.12) doesn't have support for distutils
+      # https://github.com/nodejs/node-gyp/issues/2869
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
       - name: Apply node-gyp workaround hack
         if: ${{ matrix.os == 'windows-latest' }}
         shell: bash
